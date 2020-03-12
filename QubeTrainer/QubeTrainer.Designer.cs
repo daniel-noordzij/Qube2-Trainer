@@ -65,6 +65,8 @@
             this.lblAngleY = new System.Windows.Forms.Label();
             this.btnLowGravity = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
+            this.btnFlyMode = new System.Windows.Forms.Button();
+            this.btnHideArms = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // valPosX
@@ -250,7 +252,7 @@
             // btnStore
             // 
             this.btnStore.Enabled = false;
-            this.btnStore.Location = new System.Drawing.Point(287, 181);
+            this.btnStore.Location = new System.Drawing.Point(287, 234);
             this.btnStore.Name = "btnStore";
             this.btnStore.Size = new System.Drawing.Size(121, 22);
             this.btnStore.TabIndex = 30;
@@ -261,7 +263,7 @@
             // btnRestore
             // 
             this.btnRestore.Enabled = false;
-            this.btnRestore.Location = new System.Drawing.Point(287, 209);
+            this.btnRestore.Location = new System.Drawing.Point(287, 262);
             this.btnRestore.Name = "btnRestore";
             this.btnRestore.Size = new System.Drawing.Size(121, 22);
             this.btnRestore.TabIndex = 32;
@@ -272,7 +274,7 @@
             // btnVaultSave
             // 
             this.btnVaultSave.Enabled = false;
-            this.btnVaultSave.Location = new System.Drawing.Point(287, 265);
+            this.btnVaultSave.Location = new System.Drawing.Point(287, 318);
             this.btnVaultSave.Name = "btnVaultSave";
             this.btnVaultSave.Size = new System.Drawing.Size(121, 22);
             this.btnVaultSave.TabIndex = 33;
@@ -283,7 +285,7 @@
             // btnTeleportToMarker
             // 
             this.btnTeleportToMarker.Enabled = false;
-            this.btnTeleportToMarker.Location = new System.Drawing.Point(287, 237);
+            this.btnTeleportToMarker.Location = new System.Drawing.Point(287, 290);
             this.btnTeleportToMarker.Name = "btnTeleportToMarker";
             this.btnTeleportToMarker.Size = new System.Drawing.Size(121, 22);
             this.btnTeleportToMarker.TabIndex = 34;
@@ -443,12 +445,36 @@
             this.label1.TabIndex = 53;
             this.label1.Text = "Not Working?";
             // 
+            // btnFlyMode
+            // 
+            this.btnFlyMode.Enabled = false;
+            this.btnFlyMode.Location = new System.Drawing.Point(287, 181);
+            this.btnFlyMode.Name = "btnFlyMode";
+            this.btnFlyMode.Size = new System.Drawing.Size(121, 22);
+            this.btnFlyMode.TabIndex = 54;
+            this.btnFlyMode.Text = "Fly Mode (Off)";
+            this.btnFlyMode.UseVisualStyleBackColor = true;
+            this.btnFlyMode.Click += new System.EventHandler(this.btnFlyMode_Click);
+            // 
+            // btnHideArms
+            // 
+            this.btnHideArms.Enabled = false;
+            this.btnHideArms.Location = new System.Drawing.Point(287, 208);
+            this.btnHideArms.Name = "btnHideArms";
+            this.btnHideArms.Size = new System.Drawing.Size(121, 22);
+            this.btnHideArms.TabIndex = 55;
+            this.btnHideArms.Text = "Hide Arms (Off)";
+            this.btnHideArms.UseVisualStyleBackColor = true;
+            this.btnHideArms.Click += new System.EventHandler(this.btnHideArms_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.WhiteSmoke;
             this.ClientSize = new System.Drawing.Size(446, 409);
+            this.Controls.Add(this.btnHideArms);
+            this.Controls.Add(this.btnFlyMode);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.btnLowGravity);
             this.Controls.Add(this.valAngleY);
@@ -535,6 +561,8 @@
         private System.Windows.Forms.Label lblAngleY;
         private System.Windows.Forms.Button btnLowGravity;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Button btnFlyMode;
+        private System.Windows.Forms.Button btnHideArms;
     }
 }
 

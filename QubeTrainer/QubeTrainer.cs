@@ -5,9 +5,13 @@ using System.Windows.Forms;
 using System.Diagnostics;
 using Virtua_Cop_2Trainer;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Linq;
 using System.IO;
+
+
+using System.Windows.Input;
+using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
+using System.Threading;
+using System.Collections.Generic;
 
 namespace QubeTrainer
 {
@@ -16,24 +20,24 @@ namespace QubeTrainer
         public Form1()
         {
             InitializeComponent();
-
         }
 
         VAMemory vam;
         Process GameProcess;
         Process[] processes;
-        IntPtr BaseX, BaseY, BaseZ, BaseMX, BaseMY, BaseMZ, BaseSX, BaseSY, BaseSZ, BaseAX, BaseAY;
-        Int32[] valXOff = {0x58, 0x340, 0x18, 0x100, 0x190};
-        Int32[] valYOff = {0x58, 0x340, 0x18, 0x100, 0x198};
-        Int32[] valZOff = {0x58, 0x340, 0x18, 0x100, 0x194};
-        Int32[] valMXOff = {0x58, 0x340, 0x18, 0x528, 0x670};
-        Int32[] valMYOff = {0x58, 0x340, 0x18, 0x528, 0x678};
-        Int32[] valMZOff = {0x58, 0x340, 0x18, 0x528, 0x674};
-        Int32[] valSXOff = {0x58, 0x2A0, 0x10, 0x80, 0x104};
-        Int32[] valSYOff = {0x58, 0x2A0, 0x10, 0x80, 0x10C};
-        Int32[] valSZOff = {0x58, 0x2A0, 0x10, 0x80, 0x108};
-        Int32[] valAXOff = {0x58, 0x340, 0x18, 0x100, 0x16C};
-        Int32[] valAYOff = {0x58, 0x3A0, 0x708, 0x100, 0x168};
+        IntPtr BaseX, BaseY, BaseZ, BaseMX, BaseMY, BaseMZ, BaseSX, BaseSY, BaseSZ, BaseAX, BaseAY, BaseArmsRotY;
+        Int32[] valXOff = { 0x58, 0x340, 0x18, 0x100, 0x190 };
+        Int32[] valYOff = { 0x58, 0x340, 0x18, 0x100, 0x198 };
+        Int32[] valZOff = { 0x58, 0x340, 0x18, 0x100, 0x194 };
+        Int32[] valMXOff = { 0x58, 0x340, 0x18, 0x528, 0x670 };
+        Int32[] valMYOff = { 0x58, 0x340, 0x18, 0x528, 0x678 };
+        Int32[] valMZOff = { 0x58, 0x340, 0x18, 0x528, 0x674 };
+        Int32[] valSXOff = { 0x58, 0x2A0, 0x10, 0x80, 0x104 };
+        Int32[] valSYOff = { 0x58, 0x2A0, 0x10, 0x80, 0x10C };
+        Int32[] valSZOff = { 0x58, 0x2A0, 0x10, 0x80, 0x108 };
+        Int32[] valAXOff = { 0x58, 0x340, 0x18, 0x100, 0x16C };
+        Int32[] valAYOff = { 0x58, 0x3A0, 0x708, 0x100, 0x168 };
+        Int32[] valArmsRotYOff = { 0x58, 0x340, 0x10, 0x100, 0x170 };
 
         float valX, valY, valZ, valMX, valMY, valMZ, valSX, valSY, valSZ, valAX, valAY, valLockX, valLockY, valLockZ, valLockSX, valLockSY, valLockSZ, valStoreX, valStoreY, valStoreZ;
         float valXOld, valYOld, valZOld, valMXOld, valMYOld, valMZOld, valSXOld, valSYOld, valSZOld, valAXOld, valAYOld;
@@ -47,6 +51,12 @@ namespace QubeTrainer
         bool singleJump = false;
         bool lowGravity = false;
         bool superSpeed = false;
+        bool flyMode = false;
+        bool armsHidden = false;
+
+        List<KeyboardHook.VK> currentKeys = new List<KeyboardHook.VK>();
+
+        bool connected = false;
 
         private static System.Timers.Timer aInterval;
 
@@ -70,379 +80,295 @@ namespace QubeTrainer
 
         public void KeyReader(IntPtr wParam, IntPtr lParam)
         {
-            int key = Marshal.ReadInt32(lParam);
-            KeyboardHook.VK vk = (KeyboardHook.VK)key;
-            String temp = "";
-
-            switch (vk)
+            if (connected && wParam.ToInt32() == 0x100) //WM_KEYDOWN
             {
-                case KeyboardHook.VK.VK_F1: temp = "<-F1->";
-                    break;
-                case KeyboardHook.VK.VK_F2: temp = "<-F2->";
-                    break;
-                case KeyboardHook.VK.VK_F3: temp = "<-F3->";
-                    break;
-                case KeyboardHook.VK.VK_F4: temp = "<-F4->";
-                    break;
-                case KeyboardHook.VK.VK_F5: temp = "<-F5->";
-                    break;
-                case KeyboardHook.VK.VK_F6: temp = "<-F6->";
-                    break;
-                case KeyboardHook.VK.VK_F7: temp = "<-F7->";
-                    break;
-                case KeyboardHook.VK.VK_F8: temp = "<-F8->";
-                    break;
-                case KeyboardHook.VK.VK_F9: temp = "<-F9->";
-                    break;
-                case KeyboardHook.VK.VK_F10: temp = "<-F10->";
-                    break;
-                case KeyboardHook.VK.VK_F11: temp = "<-F11->";
-                    break;
-                case KeyboardHook.VK.VK_F12: temp = "<-F12->";
-                    break;
-                case KeyboardHook.VK.VK_NUMLOCK: temp = "<-numlock->";
-                    break;
-                case KeyboardHook.VK.VK_SCROLL: temp = "<-scroll>";
-                    break;
-                case KeyboardHook.VK.VK_LSHIFT: temp = "<-left shift->";
-                    break;
-                case KeyboardHook.VK.VK_RSHIFT: temp = "<-right shift->";
-                    break;
-                case KeyboardHook.VK.VK_LCONTROL: temp = "<-left control->";
-                    break;
-                case KeyboardHook.VK.VK_RCONTROL: temp = "<-right control->";
-                    break;
-                case KeyboardHook.VK.VK_SEPERATOR: temp = "|";
-                    break;
-                case KeyboardHook.VK.VK_SUBTRACT: temp = "-";
-                    break;
-                case KeyboardHook.VK.VK_ADD: temp = "+";
-                    break;
-                case KeyboardHook.VK.VK_DECIMAL: temp = ".";
-                    break;
-                case KeyboardHook.VK.VK_DIVIDE: temp = "/";
-                    break;
-                case KeyboardHook.VK.VK_NUMPAD0: temp = "0";
-                    break;
-                case KeyboardHook.VK.VK_NUMPAD1: temp = "1";
-                    break;
-                case KeyboardHook.VK.VK_NUMPAD2: temp = "2";
-                    break;
-                case KeyboardHook.VK.VK_NUMPAD3: temp = "3";
-                    break;
-                case KeyboardHook.VK.VK_NUMPAD4: temp = "4";
-                    break;
-                case KeyboardHook.VK.VK_NUMPAD5: temp = "5";
-                    break;
-                case KeyboardHook.VK.VK_NUMPAD6: temp = "6";
-                    break;
-                case KeyboardHook.VK.VK_NUMPAD7: temp = "7";
-                    break;
-                case KeyboardHook.VK.VK_NUMPAD8: temp = "8";
-                    break;
-                case KeyboardHook.VK.VK_NUMPAD9: temp = "9";
-                    break;
-                case KeyboardHook.VK.VK_Q: temp = "q";
-                    break;
-                case KeyboardHook.VK.VK_W: temp = "w";
-                    break;
-                case KeyboardHook.VK.VK_E: temp = "e";
-                    break;
-                case KeyboardHook.VK.VK_R: temp = "r";
-                    break;
-                case KeyboardHook.VK.VK_T: temp = "t";
-                    break;
-                case KeyboardHook.VK.VK_Y: temp = "y";
-                    break;
-                case KeyboardHook.VK.VK_U: temp = "u";
-                    break;
-                case KeyboardHook.VK.VK_I: temp = "i";
-                    break;
-                case KeyboardHook.VK.VK_O: temp = "o";
-                    break;
-                case KeyboardHook.VK.VK_P: temp = "p";
-                    break;
-                case KeyboardHook.VK.VK_A: temp = "a";
-                    break;
-                case KeyboardHook.VK.VK_S: temp = "s";
-                    break;
-                case KeyboardHook.VK.VK_D: temp = "d";
-                    break;
-                case KeyboardHook.VK.VK_F: temp = "f";
-                    break;
-                case KeyboardHook.VK.VK_G: temp = "g";
-                    break;
-                case KeyboardHook.VK.VK_H: temp = "h";
-                    break;
-                case KeyboardHook.VK.VK_J: temp = "j";
-                    break;
-                case KeyboardHook.VK.VK_K: temp = "k";
-                    break;
-                case KeyboardHook.VK.VK_L: temp = "l";
-                    break;
-                case KeyboardHook.VK.VK_Z: temp = "z";
-                    break;
-                case KeyboardHook.VK.VK_X: temp = "x";
-                    break;
-                case KeyboardHook.VK.VK_C: temp = "c";
-                    break;
-                case KeyboardHook.VK.VK_V: temp = "v";
-                    break;
-                case KeyboardHook.VK.VK_B: temp = "b";
-                    break;
-                case KeyboardHook.VK.VK_N: temp = "n";
-                    break;
-                case KeyboardHook.VK.VK_M: temp = "m";
-                    break;
-                case KeyboardHook.VK.VK_0: temp = "0";
-                    break;
-                case KeyboardHook.VK.VK_1: temp = "1";
-                    break;
-                case KeyboardHook.VK.VK_2: temp = "2";
-                    break;
-                case KeyboardHook.VK.VK_3: temp = "3";
-                    break;
-                case KeyboardHook.VK.VK_4: temp = "4";
-                    break;
-                case KeyboardHook.VK.VK_5: temp = "5";
-                    break;
-                case KeyboardHook.VK.VK_6: temp = "6";
-                    break;
-                case KeyboardHook.VK.VK_7: temp = "7";
-                    break;
-                case KeyboardHook.VK.VK_8: temp = "8";
-                    break;
-                case KeyboardHook.VK.VK_9: temp = "9";
-                    break;
-                case KeyboardHook.VK.VK_SNAPSHOT: temp = "<-print screen->";
-                    break;
-                case KeyboardHook.VK.VK_INSERT: temp = "<-insert->";
-                    break;
-                case KeyboardHook.VK.VK_DELETE: temp = "<-delete->";
-                    break;
-                case KeyboardHook.VK.VK_BACK: temp = "<-backspace->";
-                    break;
-                case KeyboardHook.VK.VK_TAB: temp = "<-tab->";
-                    break;
-                case KeyboardHook.VK.VK_RETURN: temp = "<-enter->";
-                    break;
-                case KeyboardHook.VK.VK_PAUSE: temp = "<-pause->";
-                    break;
-                case KeyboardHook.VK.VK_CAPITAL: temp = "<-caps lock->";
-                    break;
-                case KeyboardHook.VK.VK_ESCAPE: temp = "<-esc->";
-                    break;
-                case KeyboardHook.VK.VK_SPACE: temp = " "; //was <-space->
-                    break;
-                case KeyboardHook.VK.VK_PRIOR: temp = "<-page up->";
-                    break;
-                case KeyboardHook.VK.VK_NEXT: temp = "<-page down->";
-                    break;
-                case KeyboardHook.VK.VK_END: temp = "<-end->";
-                    break;
-                case KeyboardHook.VK.VK_HOME: temp = "<-home->";
-                    break;
-                case KeyboardHook.VK.VK_LEFT: temp = "<-arrow left->";
-                    break;
-                case KeyboardHook.VK.VK_UP: temp = "<-arrow up->";
-                    break;
-                case KeyboardHook.VK.VK_RIGHT: temp = "<-arrow right->";
-                    break;
-                case KeyboardHook.VK.VK_DOWN: temp = "<-arrow down->";
-                    break;
-                default: break;
-            }
-
-            #region Key triggers
-            if (temp == "<-F1->" && btnConnect.Text == "Disconnect")
-            {
-                if (moonjump)
+                KeyboardHook.VK key = (KeyboardHook.VK)Marshal.ReadInt32(lParam);
+                switch (key) //Global Hotkeys
                 {
-                    btnMoonjump.Text = "Moonjump (Off)";
-                    moonjump = false;
-                }
-                else
-                {
-                    btnMoonjump.Text = "Moonjump (On)";
-                    moonjump = true;
+                    case KeyboardHook.VK.VK_F1:
+                        toggleMoonjump();
+                        break;
+                    case KeyboardHook.VK.VK_F2:
+                        toggleSuperspeed();
+                        break;
+                    case KeyboardHook.VK.VK_F3:
+                        toggleLowGravity();
+                        break;
+                    case KeyboardHook.VK.VK_F4:
+                        storePosition();
+                        break;
+                    case KeyboardHook.VK.VK_F5:
+                        restorePosition();
+                        break;
+                    case KeyboardHook.VK.VK_F6:
+                        teleportToMarker();
+                        break;
+                    case KeyboardHook.VK.VK_F7:
+                        lockX();
+                        break;
+                    case KeyboardHook.VK.VK_F8:
+                        lockY();
+                        break;
+                    case KeyboardHook.VK.VK_F9:
+                        lockZ();
+                        break;
+                    case KeyboardHook.VK.VK_F10:
+                        toggleFlyMode();
+                        break;
+                        //F11 reserved for QUBE fullscreen toggling
+                    case KeyboardHook.VK.VK_F12:
+                        toggleArmsVisible();
+                        break;
+                    default:
+                        if (!currentKeys.Contains(key))
+                        {
+                            currentKeys.Add(key);
+                        }
+                        break;
                 }
             }
-
-            if (temp == "<-F2->" && btnConnect.Text == "Disconnect")
+            else if (connected && wParam.ToInt32() == 0x101) //WM_KEYUP
             {
-                if (superSpeed)
+                KeyboardHook.VK key = (KeyboardHook.VK)Marshal.ReadInt32(lParam);
+                switch (key) //Global Hotkeys
                 {
-                    btnSuperSpeed.Text = "Super Speed (Off)";
-                    superSpeed = false;
-
-                    vam.WriteFloat(BaseSX, 0f);
-                    vam.WriteFloat(BaseSZ, 0f);
-                }
-                else
-                {
-                    btnSuperSpeed.Text = "Super Speed (On)";
-                    superSpeed = true;
+                    default:
+                        currentKeys.Remove(key);
+                        break;
                 }
             }
+        }
 
-            if (temp == "<-F3->" && btnConnect.Text == "Disconnect")
+        private void toggleArmsVisible()
+        {
+            armsHidden = !armsHidden;
+            if (armsHidden)
             {
-                if (lowGravity)
-                {
-                    btnLowGravity.Text = "Low Gravity (Off)";
-                    lowGravity = false;
-                }
-                else
-                {
-                    btnLowGravity.Text = "Low Gravity (On)";
-                    lowGravity = true;
-                }
+                vam.WriteFloat(BaseArmsRotY, -180);
             }
-
-            if (temp == "<-F4->" && btnConnect.Text == "Disconnect")
+            if (!armsHidden)
             {
-                valStoreX = valX;
-                valStoreY = valY;
-                valStoreZ = valZ;
+                vam.WriteFloat(BaseArmsRotY, 0);
             }
+            btnHideArms.Text = armsHidden ? "Hide Arms (On)" : "Hide Arms (Off)";
+        }
 
-            if (temp == "<-F5->" && btnConnect.Text == "Disconnect")
+        private void toggleFlyMode()
+        {
+            flyMode = !flyMode;
+            valLockY = valY;
+            valLockX = valX;
+            valLockZ = valZ;
+
+            btnFlyMode.Text = flyMode ? "Fly Mode (On)" : "Fly Mode (Off)";
+        }
+
+        private void lockX()
+        {
+            if (lockedX)
             {
-                vam.WriteFloat(BaseX, valStoreX);
-                vam.WriteFloat(BaseY, valStoreY);
-                vam.WriteFloat(BaseZ, valStoreZ);
+                lockedX = false;
+                SLock1.Text = "Lock";
             }
-
-            if (temp == "<-F6->" && btnConnect.Text == "Disconnect")
+            else
             {
-                vam.WriteFloat(BaseX, valMX);
-                vam.WriteFloat(BaseY, valMY);
-                vam.WriteFloat(BaseZ, valMZ);
-            }
+                valLockX = valX;
+                valLockSX = 0f;
 
-            if (temp == "<-F7->" && btnConnect.Text == "Disconnect")
+                lockedX = true;
+                SLock1.Text = "Unlock";
+            }
+        }
+
+        private void lockY()
+        {
+            if (lockedY)
             {
-                if (lockedX)
-                {
-                    lockedX = false;
-                    SLock1.Text = "Lock";
-                }
-                else
-                {
-                    valLockX = valX;
-                    valLockSX = 0f;
-
-                    lockedX = true;
-                    SLock1.Text = "Unlock";
-                }
+                lockedY = false;
+                SLock2.Text = "Lock";
             }
-
-            if (temp == "<-F8->" && btnConnect.Text == "Disconnect")
+            else
             {
-                if (lockedY)
-                {
-                    lockedY = false;
-                    SLock2.Text = "Lock";
-                }
-                else
-                {
-                    valLockY = valY;
-                    valLockSY = 0f;
+                valLockY = valY;
+                valLockSY = 0f;
 
-                    lockedY = true;
-                    SLock2.Text = "Unlock";
-                }
+                lockedY = true;
+                SLock2.Text = "Unlock";
             }
+        }
 
-            if (temp == "<-F9->" && btnConnect.Text == "Disconnect")
+        private void lockZ() {
+            if (lockedZ)
             {
-                if (lockedZ)
-                {
-                    lockedZ = false;
-                    SLock3.Text = "Lock";
-                }
-                else
-                {
-                    valLockZ = valZ;
-                    valLockSZ = 0f;
-
-                    lockedZ = true;
-                    SLock3.Text = "Unlock";
-                }
+                lockedZ = false;
+                SLock3.Text = "Lock";
             }
+            else
+            {
+                valLockZ = valZ;
+                valLockSZ = 0f;
 
-            #endregion
+                lockedZ = true;
+                SLock3.Text = "Unlock";
+            }
+        }
+
+        private void teleportToMarker()
+        {
+            vam.WriteFloat(BaseX, valMX);
+            vam.WriteFloat(BaseY, valMY);
+            vam.WriteFloat(BaseZ, valMZ);
+        }
+
+        private void restorePosition()
+        {
+            vam.WriteFloat(BaseX, valStoreX);
+            vam.WriteFloat(BaseY, valStoreY);
+            vam.WriteFloat(BaseZ, valStoreZ);
+        }
+
+        private void storePosition()
+        {
+            valStoreX = valX;
+            valStoreY = valY;
+            valStoreZ = valZ;
+        }
+
+        private void toggleLowGravity()
+        {
+            if (lowGravity)
+            {
+                btnLowGravity.Text = "Low Gravity (Off)";
+                lowGravity = false;
+            }
+            else
+            {
+                btnLowGravity.Text = "Low Gravity (On)";
+                lowGravity = true;
+            }
+        }
+
+        private void toggleSuperspeed()
+        {
+            if (superSpeed)
+            {
+                btnSuperSpeed.Text = "Super Speed (Off)";
+                superSpeed = false;
+
+                vam.WriteFloat(BaseSX, 0f);
+                vam.WriteFloat(BaseSZ, 0f);
+            }
+            else
+            {
+                btnSuperSpeed.Text = "Super Speed (On)";
+                superSpeed = true;
+            }
+        }
+
+        private void toggleMoonjump()
+        {
+            if (moonjump)
+            {
+                btnMoonjump.Text = "Moonjump (Off)";
+                moonjump = false;
+            }
+            else
+            {
+                btnMoonjump.Text = "Moonjump (On)";
+                moonjump = true;
+            }
+        }
+
+        private void connect()
+        {
+            processes = Process.GetProcessesByName("QUBE-Win64-Shipping");
+
+            if (processes.Length > 0)
+            {
+                btnConnect.Text = "Disconnect";
+
+                SLock1.Enabled = true;
+                SLock2.Enabled = true;
+                SLock3.Enabled = true;
+                btnLowGravity.Enabled = true;
+                btnMoonjump.Enabled = true;
+                btnStore.Enabled = true;
+                btnRestore.Enabled = true;
+                btnSuperSpeed.Enabled = true;
+                btnTeleportToMarker.Enabled = true;
+                btnVaultSave.Enabled = true;
+                btnHideArms.Enabled = true;
+                btnFlyMode.Enabled = true;
+
+                GameProcess = processes[0];
+                vam = new VAMemory("QUBE-Win64-Shipping");
+
+                setupAddresses();
+
+                SetInterval();
+                connected = true;
+            }
+            else
+            {
+                MessageBox.Show("Could not find an open QUBE 2 process!", "Error Finding Process", MessageBoxButtons.OK);
+            }
+        }
+
+        private void setupAddresses()
+        {
+            BaseX = BaseY = BaseZ = BaseMX = BaseMY = BaseMZ = BaseSX = BaseSY = BaseSZ = BaseAX = BaseAY = BaseArmsRotY = GameProcess.MainModule.BaseAddress + 0x0290B008;
+
+            for (int i = 0; i < 5; i++)
+            {
+                BaseX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseX), valXOff[i]);
+                BaseY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseY), valYOff[i]);
+                BaseZ = IntPtr.Add((IntPtr)vam.ReadInt64(BaseZ), valZOff[i]);
+                BaseMX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseMX), valMXOff[i]);
+                BaseMY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseMY), valMYOff[i]);
+                BaseMZ = IntPtr.Add((IntPtr)vam.ReadInt64(BaseMZ), valMZOff[i]);
+                BaseSX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseSX), valSXOff[i]);
+                BaseSY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseSY), valSYOff[i]);
+                BaseSZ = IntPtr.Add((IntPtr)vam.ReadInt64(BaseSZ), valSZOff[i]);
+                BaseAX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseAX), valAXOff[i]);
+                BaseAY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseAY), valAYOff[i]);
+                BaseArmsRotY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseArmsRotY), valArmsRotYOff[i]);
+            }
+        }
+
+        private void disconnect()
+        {
+            btnConnect.Text = "Connect";
+
+            SLock1.Enabled = false;
+            SLock2.Enabled = false;
+            SLock3.Enabled = false;
+            btnLowGravity.Enabled = false;
+            btnMoonjump.Enabled = false;
+            btnStore.Enabled = false;
+            btnRestore.Enabled = false;
+            btnSuperSpeed.Enabled = false;
+            btnTeleportToMarker.Enabled = false;
+            btnVaultSave.Enabled = false;
+            btnHideArms.Enabled = false;
+            btnFlyMode.Enabled = false;
+
+            aInterval.Stop();
+            aInterval.Dispose();
+            for (int i = 0; i < 10; i++)
+            {
+                SetValue("", i);
+            }
+            connected = false;
         }
 
         private void btnConnect_Click(object sender, EventArgs e)
         {
-            if (btnConnect.Text == "Connect")
+            if (!connected)
             {
-                processes = Process.GetProcessesByName("QUBE-Win64-Shipping");
-
-                if (processes.Length > 0)
-                {
-                    btnConnect.Text = "Disconnect";
-
-                    SLock1.Enabled = true;
-                    SLock2.Enabled = true;
-                    SLock3.Enabled = true;
-                    btnLowGravity.Enabled = true;
-                    btnMoonjump.Enabled = true;
-                    btnStore.Enabled = true;
-                    btnRestore.Enabled = true;
-                    btnSuperSpeed.Enabled = true;
-                    btnTeleportToMarker.Enabled = true;
-                    btnVaultSave.Enabled = true;
-
-                    GameProcess = processes[0];
-                    vam = new VAMemory("QUBE-Win64-Shipping");
-
-                    BaseX = BaseY = BaseZ = BaseMX = BaseMY = BaseMZ = BaseSX = BaseSY = BaseSZ = BaseAX = BaseAY = GameProcess.MainModule.BaseAddress + 0x0290B008;
-
-                    for (int i = 0; i < 5; i++)
-                    {
-                        BaseX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseX), valXOff[i]);
-                        BaseY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseY), valYOff[i]);
-                        BaseZ = IntPtr.Add((IntPtr)vam.ReadInt64(BaseZ), valZOff[i]);
-                        BaseMX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseMX), valMXOff[i]);
-                        BaseMY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseMY), valMYOff[i]);
-                        BaseMZ = IntPtr.Add((IntPtr)vam.ReadInt64(BaseMZ), valMZOff[i]);
-                        BaseSX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseSX), valSXOff[i]);
-                        BaseSY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseSY), valSYOff[i]);
-                        BaseSZ = IntPtr.Add((IntPtr)vam.ReadInt64(BaseSZ), valSZOff[i]);
-                        BaseAX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseAX), valAXOff[i]);
-                        BaseAY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseAY), valAYOff[i]);
-                    }
-
-                    SetInterval();
-                }
-                else
-                {
-                    MessageBox.Show("Could not find an open QUBE 2 process!", "Error Finding Process", MessageBoxButtons.OK);
-
-                }
+                connect();
             } else
             {
-                btnConnect.Text = "Connect";
-
-                SLock1.Enabled = false;
-                SLock2.Enabled = false;
-                SLock3.Enabled = false;
-                btnLowGravity.Enabled = false;
-                btnMoonjump.Enabled = false;
-                btnStore.Enabled = false;
-                btnRestore.Enabled = false;
-                btnSuperSpeed.Enabled = false;
-                btnTeleportToMarker.Enabled = false;
-                btnVaultSave.Enabled = false;
-
-                aInterval.Stop();
-                aInterval.Dispose();
-                for (int i = 0; i < 10; i++)
-                {
-                    SetValue("", i);
-                }
+                disconnect();
             }
         }
 
@@ -563,6 +489,10 @@ namespace QubeTrainer
         
         private void IntervalEvent(Object source, ElapsedEventArgs e)
         {
+            if (!connected)
+            {
+                return;
+            }
 
             valX = vam.ReadFloat(BaseX);
             SetValue(valX.ToString(), 1);
@@ -630,120 +560,52 @@ namespace QubeTrainer
 
             if (superSpeed)
             {
-                switch (valAX)
-                {
-                    case float n when n <= 10f && n >= -10f:
-                        vam.WriteFloat(BaseSX, 5000f);
-                        break;
-                    case float n when n < -170f || n > 170f:
-                        vam.WriteFloat(BaseSX, -5000f);
-                        break;
-                    case float n when n > 80f && n <= 100f:
-                        vam.WriteFloat(BaseSZ, 5000f);
-                        break;
-                    case float n when n < -80f && n >= -100f:
-                        vam.WriteFloat(BaseSZ, -5000f);
-                        break;
-                    case float n when n > 10f && n <= 15f:
-                        vam.WriteFloat(BaseSX, 4583f);
-                        vam.WriteFloat(BaseSZ, 416f);
-                        break;
-                    case float n when n > 15f && n <= 30f:
-                        vam.WriteFloat(BaseSX, 3750f);
-                        vam.WriteFloat(BaseSZ, 1250f);
-                        break;
-                    case float n when n > 30f && n <= 45f:
-                        vam.WriteFloat(BaseSX, 2916f);
-                        vam.WriteFloat(BaseSZ, 2083f);
-                        break;
-                    case float n when n > 45f && n <= 60f:
-                        vam.WriteFloat(BaseSX, 2083f);
-                        vam.WriteFloat(BaseSZ, 2916f);
-                        break;
-                    case float n when n > 60f && n <= 75f:
-                        vam.WriteFloat(BaseSX, 1250f);
-                        vam.WriteFloat(BaseSZ, 3750f);
-                        break;
-                    case float n when n > 75f && n <= 80f:
-                        vam.WriteFloat(BaseSX, 416f);
-                        vam.WriteFloat(BaseSZ, 4583f);
-                        break;
-                    case float n when n > 100f && n <= 105f:
-                        vam.WriteFloat(BaseSX, -416f);
-                        vam.WriteFloat(BaseSZ, 4583f);
-                        break;
-                    case float n when n > 105f && n <= 120f:
-                        vam.WriteFloat(BaseSX, -1250f);
-                        vam.WriteFloat(BaseSZ, 3750f);
-                        break;
-                    case float n when n > 120f && n <= 135f:
-                        vam.WriteFloat(BaseSX, -2083f);
-                        vam.WriteFloat(BaseSZ, 2916f);
-                        break;
-                    case float n when n > 135f && n <= 150f:
-                        vam.WriteFloat(BaseSX, -2916f);
-                        vam.WriteFloat(BaseSZ, 2083f);
-                        break;
-                    case float n when n > 150f && n <= 165f:
-                        vam.WriteFloat(BaseSX, -3750f);
-                        vam.WriteFloat(BaseSZ, 1250f);
-                        break;
-                    case float n when n > 165f && n <= 170f:
-                        vam.WriteFloat(BaseSX, -4583f);
-                        vam.WriteFloat(BaseSZ, 416f);
-                        break;
-                    case float n when n < -10f && n >= -15f:
-                        vam.WriteFloat(BaseSX, 4583f);
-                        vam.WriteFloat(BaseSZ, -416f);
-                        break;
-                    case float n when n < -15f && n >= -30f:
-                        vam.WriteFloat(BaseSX, 3750f);
-                        vam.WriteFloat(BaseSZ, -1250f);
-                        break;
-                    case float n when n < -30f && n >= -45f:
-                        vam.WriteFloat(BaseSX, 2916f);
-                        vam.WriteFloat(BaseSZ, -2083f);
-                        break;
-                    case float n when n < -45f && n >= -60f:
-                        vam.WriteFloat(BaseSX, 2083f);
-                        vam.WriteFloat(BaseSZ, -2916f);
-                        break;
-                    case float n when n < -60f && n >= -75f:
-                        vam.WriteFloat(BaseSX, 1250f);
-                        vam.WriteFloat(BaseSZ, -3750f);
-                        break;
-                    case float n when n < -75f && n >= -80f:
-                        vam.WriteFloat(BaseSX, 416f);
-                        vam.WriteFloat(BaseSZ, -4583f);
-                        break;
-                    case float n when n < -100f && n >= -105f:
-                        vam.WriteFloat(BaseSX, -416f);
-                        vam.WriteFloat(BaseSZ, -4583f);
-                        break;
-                    case float n when n < -105f && n >= -120f:
-                        vam.WriteFloat(BaseSX, -1250f);
-                        vam.WriteFloat(BaseSZ, -3750f);
-                        break;
-                    case float n when n < -120f && n >= -135f:
-                        vam.WriteFloat(BaseSX, -2083f);
-                        vam.WriteFloat(BaseSZ, -2916f);
-                        break;
-                    case float n when n < -135f && n >= -150f:
-                        vam.WriteFloat(BaseSX, -2916f);
-                        vam.WriteFloat(BaseSZ, -2083f);
-                        break;
-                    case float n when n < -150f && n >= -165f:
-                        vam.WriteFloat(BaseSX, -3750f);
-                        vam.WriteFloat(BaseSZ, -1250f);
-                        break;
-                    case float n when n < -165f && n >= -170f:
-                        vam.WriteFloat(BaseSX, -4583f);
-                        vam.WriteFloat(BaseSZ, -416f);
-                        break;
-                }
+                vam.WriteFloat(BaseSX, (float)Math.Cos((Math.PI / 180)*valAX)*3000);
+                vam.WriteFloat(BaseSZ, (float)Math.Sin((Math.PI / 180)*valAX)*3000);
             }
 
-            if (valSY <= -500 && lowGravity == true)
+            if (flyMode)
+            {
+                if (currentKeys.Contains(KeyboardHook.VK.VK_SPACE))
+                {
+                    valLockY += 100;
+                }
+                if (currentKeys.Contains(KeyboardHook.VK.VK_LSHIFT))
+                {
+                    valLockY -= 100;
+                }
+                vam.WriteFloat(BaseSX, 0);
+                vam.WriteFloat(BaseSY, 0);
+                vam.WriteFloat(BaseSZ, 0);
+
+                if (currentKeys.Contains(KeyboardHook.VK.VK_W))
+                {
+                    valX = (((float)Math.Cos((Math.PI / 180) * valAX) * 100) + valX);
+                    valZ = (((float)Math.Sin((Math.PI / 180) * valAX) * 100) + valZ);
+                }
+                if (currentKeys.Contains(KeyboardHook.VK.VK_A))
+                {
+                    valX = (((float)Math.Sin((Math.PI / 180) * valAX) * 100) + valX);
+                    valZ = (((float)Math.Cos((Math.PI / 180) * valAX) * -100) + valZ);
+                }
+                if (currentKeys.Contains(KeyboardHook.VK.VK_S))
+                {
+                    valX = (((float)Math.Cos((Math.PI / 180) * valAX) * -100) + valX);
+                    valZ = (((float)Math.Sin((Math.PI / 180) * valAX) * -100) + valZ);
+                }
+                if (currentKeys.Contains(KeyboardHook.VK.VK_D))
+                {
+                    valX = (((float)Math.Sin((Math.PI / 180) * valAX) * -100) + valX);
+                    valZ = (((float)Math.Cos((Math.PI / 180) * valAX) * 100) + valZ);
+                }
+
+                vam.WriteFloat(BaseX, valX);
+                vam.WriteFloat(BaseZ, valZ);
+
+                vam.WriteFloat(BaseY, valLockY);
+            }
+
+            if (lowGravity && valSY <= -500)
             {
                 vam.WriteFloat(BaseSY, -400);
             }
@@ -766,22 +628,7 @@ namespace QubeTrainer
             {
                 checkCounter = 0;
 
-                BaseX = BaseY = BaseZ = BaseMX = BaseMY = BaseMZ = BaseSX = BaseSY = BaseSZ = BaseAX = BaseAY = GameProcess.MainModule.BaseAddress + 0x0290B008;
-
-                for (int i = 0; i < 5; i++)
-                {
-                    BaseX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseX), valXOff[i]);
-                    BaseY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseY), valYOff[i]);
-                    BaseZ = IntPtr.Add((IntPtr)vam.ReadInt64(BaseZ), valZOff[i]);
-                    BaseMX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseMX), valMXOff[i]);
-                    BaseMY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseMY), valMYOff[i]);
-                    BaseMZ = IntPtr.Add((IntPtr)vam.ReadInt64(BaseMZ), valMZOff[i]);
-                    BaseSX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseSX), valSXOff[i]);
-                    BaseSY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseSY), valSYOff[i]);
-                    BaseSZ = IntPtr.Add((IntPtr)vam.ReadInt64(BaseSZ), valSZOff[i]);
-                    BaseAX = IntPtr.Add((IntPtr)vam.ReadInt64(BaseAX), valAXOff[i]);
-                    BaseAY = IntPtr.Add((IntPtr)vam.ReadInt64(BaseAY), valAYOff[i]);
-                }
+                setupAddresses();
             }
 
             valXOld = valX;
@@ -795,12 +642,11 @@ namespace QubeTrainer
             valSZOld = valSZ;
             valAXOld = valAX;
             valAYOld = valAY;
-            
         }
 
         private void valMarkY_MouseDown(object sender, MouseEventArgs e)
         {
-            if (btnConnect.Text == "Disconnect")
+            if (connected)
             {
                 using (Form2 form2 = new Form2(valMY))
                 {
@@ -816,7 +662,7 @@ namespace QubeTrainer
 
         private void valMarkZ_MouseDown(object sender, MouseEventArgs e)
         {
-            if (btnConnect.Text == "Disconnect")
+            if (connected)
             {
                 using (Form2 form2 = new Form2(valMZ))
                 {
@@ -832,7 +678,7 @@ namespace QubeTrainer
 
         private void valMarkX_MouseDown(object sender, MouseEventArgs e)
         {
-            if (btnConnect.Text == "Disconnect")
+            if (connected)
             {
                 using (Form2 form2 = new Form2(valMX))
                 {
@@ -848,7 +694,7 @@ namespace QubeTrainer
 
         private void valPosZ_MouseDown(object sender, MouseEventArgs e)
         {
-            if (btnConnect.Text == "Disconnect")
+            if (connected)
             {
                 using (Form2 form2 = new Form2(valZ))
                 {
@@ -864,7 +710,7 @@ namespace QubeTrainer
 
         private void valPosY_MouseDown(object sender, MouseEventArgs e)
         {
-            if (btnConnect.Text == "Disconnect")
+            if (connected)
             {
                 using (Form2 form2 = new Form2(valY))
                 {
@@ -880,7 +726,7 @@ namespace QubeTrainer
 
         private void valPosX_MouseDown(object sender, MouseEventArgs e)
         {
-            if (btnConnect.Text == "Disconnect")
+            if (connected)
             {
                 using (Form2 form2 = new Form2(valX))
                 {
@@ -896,63 +742,32 @@ namespace QubeTrainer
 
         private void btnMoonjump_Click(object sender, EventArgs e)
         {
-            if (moonjump)
-            {
-                btnMoonjump.Text = "Moonjump (Off)";
-                moonjump = false;
-            } else
-            {
-                btnMoonjump.Text = "Moonjump (On)";
-                moonjump = true;
-            }
+            toggleMoonjump();
         }
 
         private void btnSuperSpeed_Click(object sender, EventArgs e)
         {
-            if (superSpeed)
-            {
-                btnSuperSpeed.Text = "Super Speed (Off)";
-                superSpeed = false;
-            }
-            else
-            {
-                btnSuperSpeed.Text = "Super Speed (On)";
-                superSpeed = true;
-            }
+            toggleSuperspeed();
         }
 
         private void btnLowGravity_Click(object sender, EventArgs e)
         {
-            if (lowGravity)
-            {
-                btnLowGravity.Text = "Low Gravity (Off)";
-                lowGravity = false;
-            } else
-            {
-                btnLowGravity.Text = "Low Gravity (On)";
-                lowGravity = true;
-            }
+            toggleLowGravity();
         }
 
         private void btnTeleportToMarker_Click(object sender, EventArgs e)
         {
-            vam.WriteFloat(BaseX, valMX);
-            vam.WriteFloat(BaseY, valMY);
-            vam.WriteFloat(BaseZ, valMZ);
+            teleportToMarker();
         }
 
         private void btnStore_Click(object sender, EventArgs e)
         {
-            valStoreX = valX;
-            valStoreY = valY;
-            valStoreZ = valZ;
+            storePosition();
         }
 
         private void btnRestore_Click(object sender, EventArgs e)
         {
-            vam.WriteFloat(BaseX, valStoreX);
-            vam.WriteFloat(BaseY, valStoreY);
-            vam.WriteFloat(BaseZ, valStoreZ);
+            restorePosition();
         }
 
         private void btnVaultSave_Click(object sender, EventArgs e)
@@ -968,96 +783,67 @@ namespace QubeTrainer
 
         private void SLock2_Click(object sender, EventArgs e)
         {
-            if (lockedY)
-            {
-                lockedY = false;
-                SLock2.Text = "Lock";
-            }
-            else
-            {
-                valLockY = valY;
-                valLockSY = 0f;
-
-                lockedY = true;
-                SLock2.Text = "Unlock";
-            }
+            lockY();
         }
 
         private void SLock1_Click(object sender, EventArgs e)
         {
-            if (lockedX)
-            {
-                lockedX = false;
-                SLock1.Text = "Lock";
-            }
-            else
-            {
-                valLockX = valX;
-                valLockSX = 0f;
-
-                lockedX = true;
-                SLock1.Text = "Unlock";
-            }
+            lockX();
         }
 
         private void SLock3_Click(object sender, EventArgs e)
         {
-            if (lockedZ)
-            {
-                lockedZ = false;
-                SLock3.Text = "Lock";
-            }
-            else
-            {
-                valLockZ = valZ;
-                valLockSZ = 0f;
-
-                lockedZ = true;
-                SLock3.Text = "Unlock";
-            }
+            lockZ();
         }
 
         private void btnDarkMode_Click(object sender, EventArgs e)
         {
+            toggleDarkMode();
+        }
+
+        private void btnFlyMode_Click(object sender, EventArgs e)
+        {
+            toggleFlyMode();
+        }
+
+        private void btnHideArms_Click(object sender, EventArgs e)
+        {
+            toggleArmsVisible();
+        }
+
+        private void toggleDarkMode()
+        {
             if (this.BackColor == Color.WhiteSmoke)
             {
                 btnDarkMode.Text = "Light Mode";
-                lblAngleX.ForeColor = Color.WhiteSmoke;
-                lblAngleY.ForeColor = Color.WhiteSmoke;
-                lblPosX.ForeColor = Color.WhiteSmoke;
-                lblPosY.ForeColor = Color.WhiteSmoke;
-                lblPosZ.ForeColor = Color.WhiteSmoke;
-                lblMarkX.ForeColor = Color.WhiteSmoke;
-                lblMarkY.ForeColor = Color.WhiteSmoke;
-                lblMarkZ.ForeColor = Color.WhiteSmoke;
-                lblSpeed.ForeColor = Color.WhiteSmoke;
-                lblAuthor.ForeColor = Color.WhiteSmoke;
-                lblHelpers.ForeColor = Color.WhiteSmoke;
-                lblVersion.ForeColor = Color.WhiteSmoke;
-                lblPositions.ForeColor = Color.WhiteSmoke;
-                lblCheats.ForeColor = Color.WhiteSmoke;
-                label1.ForeColor = Color.WhiteSmoke;
+                setAllForegroundColors(Color.WhiteSmoke);
                 this.BackColor = Color.FromArgb(64, 64, 64);
-            } else
+            }
+            else
             {
                 btnDarkMode.Text = "Dark Mode";
-                lblAngleX.ForeColor = Color.Black;
-                lblAngleY.ForeColor = Color.Black;
-                lblPosX.ForeColor = Color.Black;
-                lblPosY.ForeColor = Color.Black;
-                lblPosZ.ForeColor = Color.Black;
-                lblMarkX.ForeColor = Color.Black;
-                lblMarkY.ForeColor = Color.Black;
-                lblMarkZ.ForeColor = Color.Black;
-                lblSpeed.ForeColor = Color.Black;
-                lblAuthor.ForeColor = Color.Black;
-                lblHelpers.ForeColor = Color.Black;
-                lblVersion.ForeColor = Color.Black;
-                lblPositions.ForeColor = Color.Black;
-                lblCheats.ForeColor = Color.Black;
-                label1.ForeColor = Color.Black;
+                setAllForegroundColors(Color.Black);
                 this.BackColor = Color.WhiteSmoke;
             }
+        }
+
+        public void setAllForegroundColors(Color color)
+        {
+            lblAngleX.ForeColor = color;
+            lblAngleY.ForeColor = color;
+            lblPosX.ForeColor = color;
+            lblPosY.ForeColor = color;
+            lblPosZ.ForeColor = color;
+            lblMarkX.ForeColor = color;
+            lblMarkY.ForeColor = color;
+            lblMarkZ.ForeColor = color;
+            lblSpeed.ForeColor = color;
+            lblAuthor.ForeColor = color;
+            lblHelpers.ForeColor = color;
+            lblVersion.ForeColor = color;
+            lblPositions.ForeColor = color;
+            lblCheats.ForeColor = color;
+            label1.ForeColor = color;
         }
     }
 }

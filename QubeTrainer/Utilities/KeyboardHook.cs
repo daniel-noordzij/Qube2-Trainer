@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Runtime.InteropServices; //USED TO CALL THE DLL IMPORTS
-using System.Diagnostics;
 
 //Class wasnt done by me
 //FULL CREDITS TO 
@@ -47,18 +43,19 @@ namespace Virtua_Cop_2Trainer
             //http://delphi.about.com/od/objectpascalide/l/blvkc.htm
 
             //I've commented out the keys that I've never heard of--feel free to uncomment them if you wish
+            NONE = 0X00,
 
             VK_LBUTTON = 0X01, //Left mouse
             VK_RBUTTON = 0X02, //Right mouse
-            //VK_CANCEL       = 0X03,
+            VK_CANCEL       = 0X03,
             VK_MBUTTON = 0X04,
             VK_BACK = 0X08, //Backspace
             VK_TAB = 0X09,
-            //VK_CLEAR        = 0X0C,
+            VK_CLEAR        = 0X0C,
             VK_RETURN = 0X0D, //Enter
             VK_SHIFT = 0X10,
             VK_CONTROL = 0X11, //CTRL
-            //VK_MENU         = 0X12,
+            VK_MENU         = 0X12,
             VK_PAUSE = 0X13,
             VK_CAPITAL = 0X14, //Caps-Lock
             VK_ESCAPE = 0X1B,
@@ -71,13 +68,13 @@ namespace Virtua_Cop_2Trainer
             VK_UP = 0X26,
             VK_RIGHT = 0X27,
             VK_DOWN = 0X28,
-            //VK_SELECT       = 0X29,
-            //VK_PRINT        = 0X2A,
-            //VK_EXECUTE      = 0X2B,
+            VK_SELECT       = 0X29,
+            VK_PRINT        = 0X2A,
+            VK_EXECUTE      = 0X2B,
             VK_SNAPSHOT = 0X2C, //Print Screen
             VK_INSERT = 0X2D,
             VK_DELETE = 0X2E,
-            //VK_HELP         = 0X2F,
+            VK_HELP         = 0X2F,
 
             VK_0 = 0X30,
             VK_1 = 0X31,
@@ -201,7 +198,7 @@ namespace Virtua_Cop_2Trainer
             int iwParam = wParam.ToInt32();
             if (nCode >= 0 &&
                 (iwParam == 0x100 ||
-                iwParam == 0x104)) //0x100 = WM_KEYDOWN, 0x104 = WM_SYSKEYDOWN
+                iwParam == 0x101)) //0x100 = WM_KEYDOWN, 0x101 = WM_KEYUP
                 kh(wParam, lParam);
 
             return API.CallNextHookEx(hhk, nCode, wParam, lParam);

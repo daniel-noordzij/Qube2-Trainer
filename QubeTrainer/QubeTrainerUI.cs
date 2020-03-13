@@ -314,7 +314,9 @@ namespace QubeTrainerUI
         {
             if (trainer.connected)
             {
-                trainer.writeFloat(trainer.BaseX, showNumberDialog(trainer.valX));
+                float newVal = showNumberDialog(trainer.valX);
+                trainer.valLockX = newVal;
+                trainer.writeFloat(trainer.BaseX, newVal);
             }
         }
 
@@ -322,7 +324,9 @@ namespace QubeTrainerUI
         {
             if (trainer.connected)
             {
-                trainer.writeFloat(trainer.BaseY, showNumberDialog(trainer.valY));
+                float newVal = showNumberDialog(trainer.valY);
+                trainer.valLockY = newVal;
+                trainer.writeFloat(trainer.BaseY, newVal);
             }
         }
 
@@ -330,7 +334,9 @@ namespace QubeTrainerUI
         {
             if (trainer.connected)
             {
-                trainer.writeFloat(trainer.BaseZ, showNumberDialog(trainer.valZ));
+                float newVal = showNumberDialog(trainer.valZ);
+                trainer.valLockZ = newVal;
+                trainer.writeFloat(trainer.BaseZ, newVal);
             }
         }
 

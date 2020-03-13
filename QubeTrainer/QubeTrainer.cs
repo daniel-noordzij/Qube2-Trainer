@@ -255,6 +255,9 @@ namespace QubeTrainerNamespace
             vam.WriteFloat(BaseX, valMX);
             vam.WriteFloat(BaseY, valMY);
             vam.WriteFloat(BaseZ, valMZ);
+            valLockX = valMX;
+            valLockY = valMY;
+            valLockZ = valMZ;
         }
 
         public void restorePosition()

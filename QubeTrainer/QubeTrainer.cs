@@ -784,6 +784,7 @@ namespace QubeTrainer
                     DialogResult dr = form2.ShowDialog(this);
                     if (dr == DialogResult.OK)
                     {
+                        valLockZ = float.Parse(form2.getNewVal());
                         vam.WriteFloat(BaseZ, float.Parse(form2.getNewVal()));
                         valLockZ = float.Parse(form2.getNewVal());
                     }
@@ -801,6 +802,7 @@ namespace QubeTrainer
                     DialogResult dr = form2.ShowDialog(this);
                     if (dr == DialogResult.OK)
                     {
+                        valLockY = float.Parse(form2.getNewVal());
                         vam.WriteFloat(BaseY, float.Parse(form2.getNewVal()));
                         valLockY = float.Parse(form2.getNewVal());
                     }
@@ -818,6 +820,7 @@ namespace QubeTrainer
                     DialogResult dr = form2.ShowDialog(this);
                     if (dr == DialogResult.OK)
                     {
+                        valLockX = float.Parse(form2.getNewVal());
                         vam.WriteFloat(BaseX, float.Parse(form2.getNewVal()));
                         valLockX = float.Parse(form2.getNewVal());
                     }

@@ -438,103 +438,49 @@ namespace QubeTrainer
             switch (type)
             {
                 case 1:
-                    if (this.valPosX.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valPosX.Text = text;
-                    }
+                    valPosX.Invoke(new Action(() => {
+                        valPosX.Text = text;
+                    }));
                     break;
                 case 2:
-                    if (this.valPosY.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valPosY.Text = text;
-                    }
+                    valPosY.Invoke(new Action(() => {
+                        valPosY.Text = text;
+                    }));
                     break;
                 case 3:
-                    if (this.valPosZ.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valPosZ.Text = text;
-                    }
+                    valPosZ.Invoke(new Action(() => {
+                        valPosZ.Text = text;
+                    }));
                     break;
                 case 4:
-                    if (this.valMarkX.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valMarkX.Text = text;
-                    }
+                    valMarkX.Invoke(new Action(() => {
+                        valMarkX.Text = text;
+                    }));
                     break;
                 case 5:
-                    if (this.valMarkY.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valMarkY.Text = text;
-                    }
+                    valMarkY.Invoke(new Action(() => {
+                        valMarkY.Text = text;
+                    }));
                     break;
                 case 6:
-                    if (this.valMarkZ.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valMarkZ.Text = text;
-                    }
+                    valMarkZ.Invoke(new Action(() => {
+                        valMarkZ.Text = text;
+                    }));
                     break;
                 case 7:
-                    if (this.valSpeedX.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valSpeedX.Text = text;
-                    }
+                    valSpeedX.Invoke(new Action(() => {
+                        valSpeedX.Text = text;
+                    }));
                     break;
                 case 8:
-                    if (this.valAngleX.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valAngleX.Text = text;
-                    }
+                    valAngleX.Invoke(new Action(() => {
+                        valAngleX.Text = text;
+                    }));
                     break;
                 case 9:
-                    if (this.valAngleY.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valAngleY.Text = text;
-                    }
+                    valAngleY.Invoke(new Action(() => {
+                        valAngleY.Text = text;
+                    }));
                     break;
                 case 10:
                     if (this.valSpeedY.InvokeRequired)

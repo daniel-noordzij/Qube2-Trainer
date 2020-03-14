@@ -12,6 +12,8 @@ using System.Windows.Input;
 using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
 using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
+using System.Media;
 
 namespace QubeTrainer
 {
@@ -43,16 +45,21 @@ namespace QubeTrainer
         float valXOld, valYOld, valZOld, valMXOld, valMYOld, valMZOld, valSXOld, valSYOld, valSZOld, valAXOld, valAYOld;
 
         int checkCounter = 0;
+        int turnValue;
 
         bool lockedX = false;
         bool lockedY = false;
         bool lockedZ = false;
+        bool lockedSX = false;
+        bool lockedSY = false;
+        bool lockedSZ = false;
         bool moonjump = false;
         bool singleJump = false;
         bool lowGravity = false;
         bool superSpeed = false;
         bool flyMode = false;
         bool armsHidden = false;
+        bool levelsOpen = false;
 
         List<KeyboardHook.VK> currentKeys = new List<KeyboardHook.VK>();
 
@@ -61,7 +68,8 @@ namespace QubeTrainer
         private static System.Timers.Timer aInterval;
 
         string[] fileNames = { "MainSaveGame.sav", "MainStatsSaveGame.sav", "MainUnlockedLevels.sav" };
-        string source = Path.Combine(Directory.GetCurrentDirectory(), "VaultSave");
+        string sourceVS = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\VaultSave");
+        string source;
         string target = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QUBE\\Saved\\SaveGames\\");
 
         private void Form1_Load(object sender, EventArgs e)
@@ -139,6 +147,26 @@ namespace QubeTrainer
             }
         }
 
+        private void btnLevels_Click(object sender, EventArgs e)
+        {
+            levelsOpen = !levelsOpen;
+            if (levelsOpen)
+            {
+                this.Width = 600;
+                lblAuthor.Location = new Point(458, 417);
+                lblHelpers.Location = new Point(333, 431);
+                lblVersion.Location = new Point(289, 445);
+            }
+            else
+            {
+                this.Width = 450;
+                lblAuthor.Location = new Point(308, 417);
+                lblHelpers.Location = new Point(183, 431);
+                lblVersion.Location = new Point(139, 445);
+            }
+            btnLevels.Text = levelsOpen ? "Levels <" : "Levels >";
+        }
+
         private void toggleArmsVisible()
         {
             armsHidden = !armsHidden;
@@ -210,6 +238,54 @@ namespace QubeTrainer
 
                 lockedZ = true;
                 SLock3.Text = "Unlock";
+            }
+        }
+
+        private void lockSX()
+        {
+            if (lockedSX)
+            {
+                lockedSX = false;
+                SLock4.Text = "Lock";
+            }
+            else
+            {
+                valLockSX = valSX;
+
+                lockedSX = true;
+                SLock4.Text = "Unlock";
+            }
+        }
+
+        private void lockSY()
+        {
+            if (lockedSY)
+            {
+                lockedSY = false;
+                SLock5.Text = "Lock";
+            }
+            else
+            {
+                valLockSY = valSY;
+
+                lockedSY = true;
+                SLock5.Text = "Unlock";
+            }
+        }
+
+        private void lockSZ()
+        {
+            if (lockedSZ)
+            {
+                lockedSZ = false;
+                SLock6.Text = "Lock";
+            }
+            else
+            {
+                valLockSZ = valSZ;
+
+                lockedSZ = true;
+                SLock6.Text = "Unlock";
             }
         }
 
@@ -287,18 +363,10 @@ namespace QubeTrainer
             {
                 btnConnect.Text = "Disconnect";
 
-                SLock1.Enabled = true;
-                SLock2.Enabled = true;
-                SLock3.Enabled = true;
-                btnLowGravity.Enabled = true;
-                btnMoonjump.Enabled = true;
-                btnStore.Enabled = true;
-                btnRestore.Enabled = true;
-                btnSuperSpeed.Enabled = true;
-                btnTeleportToMarker.Enabled = true;
-                btnVaultSave.Enabled = true;
-                btnHideArms.Enabled = true;
-                btnFlyMode.Enabled = true;
+                foreach (var button in this.Controls.OfType<Button>().Where(btn => (string)btn.Tag != "tagNoEnable"))
+                {
+                    button.Enabled = true;
+                }
 
                 GameProcess = processes[0];
                 vam = new VAMemory("QUBE-Win64-Shipping");
@@ -339,18 +407,10 @@ namespace QubeTrainer
         {
             btnConnect.Text = "Connect";
 
-            SLock1.Enabled = false;
-            SLock2.Enabled = false;
-            SLock3.Enabled = false;
-            btnLowGravity.Enabled = false;
-            btnMoonjump.Enabled = false;
-            btnStore.Enabled = false;
-            btnRestore.Enabled = false;
-            btnSuperSpeed.Enabled = false;
-            btnTeleportToMarker.Enabled = false;
-            btnVaultSave.Enabled = false;
-            btnHideArms.Enabled = false;
-            btnFlyMode.Enabled = false;
+            foreach (var button in this.Controls.OfType<Button>().Where(btn => (string)btn.Tag != "tagNoDisable"))
+            {
+                button.Enabled = false;
+            }
 
             aInterval.Stop();
             aInterval.Dispose();
@@ -371,7 +431,7 @@ namespace QubeTrainer
                 disconnect();
             }
         }
-
+        
         delegate void SetTextCallback(string text, int type);
         private void SetValue(string text, int type)
         {
@@ -444,14 +504,14 @@ namespace QubeTrainer
                     }
                     break;
                 case 7:
-                    if (this.valSpeed.InvokeRequired)
+                    if (this.valSpeedX.InvokeRequired)
                     {
                         SetTextCallback d = new SetTextCallback(SetValue);
                         this.Invoke(d, new object[] { text, type });
                     }
                     else
                     {
-                        this.valSpeed.Text = text;
+                        this.valSpeedX.Text = text;
                     }
                     break;
                 case 8:
@@ -474,6 +534,28 @@ namespace QubeTrainer
                     else
                     {
                         this.valAngleY.Text = text;
+                    }
+                    break;
+                case 10:
+                    if (this.valSpeedY.InvokeRequired)
+                    {
+                        SetTextCallback d = new SetTextCallback(SetValue);
+                        this.Invoke(d, new object[] { text, type });
+                    }
+                    else
+                    {
+                        this.valSpeedY.Text = text;
+                    }
+                    break;
+                case 11:
+                    if (this.valSpeedZ.InvokeRequired)
+                    {
+                        SetTextCallback d = new SetTextCallback(SetValue);
+                        this.Invoke(d, new object[] { text, type });
+                    }
+                    else
+                    {
+                        this.valSpeedZ.Text = text;
                     }
                     break;
             }
@@ -509,7 +591,11 @@ namespace QubeTrainer
             SetValue(valMZ.ToString(), 6);
 
             valSX = vam.ReadFloat(BaseSX);
+            SetValue(valSX.ToString(), 7);
+            valSY = vam.ReadFloat(BaseSY);
+            SetValue(valSY.ToString(), 10);
             valSZ = vam.ReadFloat(BaseSZ);
+            SetValue(valSZ.ToString(), 11);
 
             valAX = vam.ReadFloat(BaseAX);
             SetValue(valAX.ToString(), 8);
@@ -534,7 +620,20 @@ namespace QubeTrainer
                 vam.WriteFloat(BaseSZ, valLockSZ);
             }
 
-            valSY = vam.ReadFloat(BaseSY);
+            if (lockedSX)
+            {
+                vam.WriteFloat(BaseSX, valLockSX);
+            }
+
+            if (lockedSY)
+            {
+                vam.WriteFloat(BaseSY, valLockSY);
+            }
+
+            if (lockedSZ)
+            {
+                vam.WriteFloat(BaseSZ, valLockSZ);
+            }
 
             if (moonjump && !singleJump)
             {
@@ -560,8 +659,55 @@ namespace QubeTrainer
 
             if (superSpeed)
             {
-                vam.WriteFloat(BaseSX, (float)Math.Cos((Math.PI / 180)*valAX)*3000);
-                vam.WriteFloat(BaseSZ, (float)Math.Sin((Math.PI / 180)*valAX)*3000);
+                if (currentKeys.Contains(KeyboardHook.VK.VK_W) && currentKeys.Contains(KeyboardHook.VK.VK_D))
+                {
+                    turnValue = 45;
+                }
+                else if (currentKeys.Contains(KeyboardHook.VK.VK_W) && currentKeys.Contains(KeyboardHook.VK.VK_A))
+                {
+                    turnValue = 315;
+                }
+                else if (currentKeys.Contains(KeyboardHook.VK.VK_S) && currentKeys.Contains(KeyboardHook.VK.VK_D))
+                {
+                    turnValue = 135;
+                }
+                else if (currentKeys.Contains(KeyboardHook.VK.VK_S) && currentKeys.Contains(KeyboardHook.VK.VK_A))
+                {
+                    turnValue = 225;
+                }
+                else if (currentKeys.Contains(KeyboardHook.VK.VK_W))
+                {
+                    turnValue = 0;
+                }
+                else if (currentKeys.Contains(KeyboardHook.VK.VK_A))
+                {
+                    turnValue = 270;
+                }
+                else if (currentKeys.Contains(KeyboardHook.VK.VK_S))
+                {
+                    turnValue = 180;
+                }
+                else if (currentKeys.Contains(KeyboardHook.VK.VK_D))
+                {
+                    turnValue = 90;
+                }
+
+                if (currentKeys.Contains(KeyboardHook.VK.VK_W) || currentKeys.Contains(KeyboardHook.VK.VK_A) || currentKeys.Contains(KeyboardHook.VK.VK_S) || currentKeys.Contains(KeyboardHook.VK.VK_D))
+                {
+                    vam.WriteFloat(BaseSX, (float)Math.Cos((Math.PI / 180) * (valAX + turnValue)) * 5000);
+                    vam.WriteFloat(BaseSZ, (float)Math.Sin((Math.PI / 180) * (valAX + turnValue)) * 5000);
+                }
+                else
+                {
+                    if (!lockedSX)
+                    {
+                        vam.WriteFloat(BaseSX, 0);
+                    }
+                    if (!lockedSZ)
+                    {
+                        vam.WriteFloat(BaseSZ, 0);
+                    }
+                }
             }
 
             if (flyMode)
@@ -608,15 +754,6 @@ namespace QubeTrainer
             if (lowGravity && valSY <= -500)
             {
                 vam.WriteFloat(BaseSY, -400);
-            }
-
-            if (valSX > valSZ)
-            {
-                SetValue(Math.Abs(valSX).ToString(), 7);
-            }
-            else
-            {
-                SetValue(Math.Abs(valSZ).ToString(), 7);
             }
 
             if (valX == valXOld && valY == valYOld && valZ == valZOld && valMX == valMXOld && valMY == valMYOld && valMZ == valMZOld && valSX == valSXOld && valSY == valSYOld && valSZ == valSZOld && valAX == valAXOld && valAY == valAYOld)
@@ -702,6 +839,7 @@ namespace QubeTrainer
                     if (dr == DialogResult.OK)
                     {
                         vam.WriteFloat(BaseZ, float.Parse(form2.getNewVal()));
+                        valLockZ = float.Parse(form2.getNewVal());
                     }
                     form2.Close();
                 }
@@ -718,6 +856,7 @@ namespace QubeTrainer
                     if (dr == DialogResult.OK)
                     {
                         vam.WriteFloat(BaseY, float.Parse(form2.getNewVal()));
+                        valLockY = float.Parse(form2.getNewVal());
                     }
                     form2.Close();
                 }
@@ -734,6 +873,7 @@ namespace QubeTrainer
                     if (dr == DialogResult.OK)
                     {
                         vam.WriteFloat(BaseX, float.Parse(form2.getNewVal()));
+                        valLockX = float.Parse(form2.getNewVal());
                     }
                     form2.Close();
                 }
@@ -774,7 +914,7 @@ namespace QubeTrainer
         {
             for (int i = 0; i < fileNames.Length; i++)
             {
-                string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
+                string sourceFile = System.IO.Path.Combine(sourceVS, fileNames[i]);
                 string targetFile = System.IO.Path.Combine(target, fileNames[i]);
 
                 System.IO.File.Copy(sourceFile, targetFile, true);
@@ -794,6 +934,21 @@ namespace QubeTrainer
         private void SLock3_Click(object sender, EventArgs e)
         {
             lockZ();
+        }
+
+        private void SLock4_Click(object sender, EventArgs e)
+        {
+            lockSX();
+        }
+
+        private void SLock5_Click(object sender, EventArgs e)
+        {
+            lockSY();
+        }
+
+        private void SLock6_Click(object sender, EventArgs e)
+        {
+            lockSZ();
         }
 
         private void btnDarkMode_Click(object sender, EventArgs e)
@@ -829,21 +984,119 @@ namespace QubeTrainer
 
         public void setAllForegroundColors(Color color)
         {
-            lblAngleX.ForeColor = color;
-            lblAngleY.ForeColor = color;
-            lblPosX.ForeColor = color;
-            lblPosY.ForeColor = color;
-            lblPosZ.ForeColor = color;
-            lblMarkX.ForeColor = color;
-            lblMarkY.ForeColor = color;
-            lblMarkZ.ForeColor = color;
-            lblSpeed.ForeColor = color;
-            lblAuthor.ForeColor = color;
-            lblHelpers.ForeColor = color;
-            lblVersion.ForeColor = color;
-            lblPositions.ForeColor = color;
-            lblCheats.ForeColor = color;
-            label1.ForeColor = color;
+            foreach (var label in this.Controls.OfType<Label>())
+            {
+                label.ForeColor = color;
+            }
+        }
+
+        private void chapterClicks(object sender, EventArgs e)
+        {
+            switch ((sender as Button).Text)
+            {
+                case "Chapter 1":
+                    setLevelButtons(1); break;
+                case "Chapter 2":
+                    setLevelButtons(2); break;
+                case "Chapter 3":
+                    setLevelButtons(3); break;
+                case "Chapter 4":
+                    setLevelButtons(4); break;
+                case "Chapter 5":
+                    setLevelButtons(5); break;
+                case "Chapter 6":
+                    setLevelButtons(6); break;
+                case "Chapter 7":
+                    setLevelButtons(7); break;
+                case "Chapter 8":
+                    setLevelButtons(8); break;
+                case "Chapter 9":
+                    setLevelButtons(9); break;
+                case "Chapter 10":
+                    setLevelButtons(10); break;
+                case "Chapter 11":
+                    setLevelButtons(11); break;
+                default:
+                    MessageBox.Show("Something went wrong, please ask for help in the discord!", "Error!", MessageBoxButtons.OK);
+                    break;
+            }
+        }
+
+        private void setLevelButtons(int chapterNum)
+        {
+            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagMain"))
+                button.Visible = false;
+            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagCh" + chapterNum))
+                button.Visible = true;
+            btnBack.Enabled = true;
+        }
+
+        private void btnBack_Click(object sender, EventArgs e)
+        {
+            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>())
+                button.Visible = false;
+            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagMain"))
+                button.Visible = true;
+            btnBack.Enabled = false;
+        }
+
+        private void btnReloadSave_Click(object sender, EventArgs e)
+        {
+            if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+            {
+                using (StreamReader sr = File.OpenText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+                {
+                    string s = "";
+                    if ((s = sr.ReadLine()) != null)
+                    {
+                        source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + s);
+                        for (int i = 0; i < fileNames.Length; i++)
+                        {
+                            string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
+                            string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+
+                            System.IO.File.Copy(sourceFile, targetFile, true);
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Something went wrong, please ask for help in the discord!", "Error!", MessageBoxButtons.OK);
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("No existing previous save!", "Error!", MessageBoxButtons.OK);
+            }
+        }
+
+        private void setNewSave(object sender, EventArgs e)
+        {
+            source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + (sender as Button).Text);
+            for (int i = 0; i < fileNames.Length; i++)
+            {
+                string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
+                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+
+                System.IO.File.Copy(sourceFile, targetFile, true);
+            }
+
+            if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+            {
+                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+                {
+                    sw.WriteLine((sender as Button).Text);
+                }
+            }
+            else
+            {
+                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+                {
+                    sw.WriteLine((sender as Button).Text);
+                }
+            }
+
+            SystemSounds.Beep.Play();
         }
     }
 }

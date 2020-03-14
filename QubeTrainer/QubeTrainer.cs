@@ -1,33 +1,24 @@
 ﻿using System;
-using System.Timers;
-using System.Drawing;
-using System.Windows.Forms;
+using System.Collections.Generic;
 using System.Diagnostics;
-using Virtua_Cop_2Trainer;
 using System.Runtime.InteropServices;
 using System.IO;
-
-
-using System.Windows.Input;
-using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
-using System.Threading;
-using System.Collections.Generic;
 using System.Linq;
 using System.Media;
+using System.Timers;
 
-namespace QubeTrainer
+using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
+using Virtua_Cop_2Trainer;
+
+namespace QubeTrainerNamespace
 {
-    public partial class Form1 : Form
+    class QubeTrainer
     {
-        public Form1()
-        {
-            InitializeComponent();
-        }
 
         VAMemory vam;
         Process GameProcess;
         Process[] processes;
-        IntPtr BaseX, BaseY, BaseZ, BaseMX, BaseMY, BaseMZ, BaseSX, BaseSY, BaseSZ, BaseAX, BaseAY, BaseArmsRotY;
+        public IntPtr BaseX, BaseY, BaseZ, BaseMX, BaseMY, BaseMZ, BaseSX, BaseSY, BaseSZ, BaseAX, BaseAY, BaseArmsRotY;
         Int32[] valXOff = { 0x58, 0x340, 0x18, 0x100, 0x190 };
         Int32[] valYOff = { 0x58, 0x340, 0x18, 0x100, 0x198 };
         Int32[] valZOff = { 0x58, 0x340, 0x18, 0x100, 0x194 };
@@ -41,10 +32,6 @@ namespace QubeTrainer
         Int32[] valAYOff = { 0x58, 0x3A0, 0x708, 0x100, 0x168 };
         Int32[] valArmsRotYOff = { 0x58, 0x340, 0x10, 0x100, 0x170 };
 
-        float valX, valY, valZ, valMX, valMY, valMZ, valSX, valSY, valSZ, valAX, valAY, valLockX, valLockY, valLockZ, valLockSX, valLockSY, valLockSZ, valStoreX, valStoreY, valStoreZ;
-        float valXOld, valYOld, valZOld, valMXOld, valMYOld, valMZOld, valSXOld, valSYOld, valSZOld, valAXOld, valAYOld;
-
-        int checkCounter = 0;
         int turnValue;
 
         bool lockedX = false;
@@ -61,29 +48,22 @@ namespace QubeTrainer
         bool armsHidden = false;
         bool levelsOpen = false;
 
+        public bool connected = false;
+
+        private static Timer aInterval;
+
+        private int checkCounter = 0;
+
         List<KeyboardHook.VK> currentKeys = new List<KeyboardHook.VK>();
 
-        bool connected = false;
+        public float valX, valY, valZ, valMX, valMY, valMZ, valSX, valSY, valSZ, valAX, valAY, valLockX, valLockY, valLockZ, valLockSX, valLockSY, valLockSZ, valStoreX, valStoreY, valStoreZ;
+        float valXOld, valYOld, valZOld, valMXOld, valMYOld, valMZOld, valSXOld, valSYOld, valSZOld, valAXOld, valAYOld;
+        QubeTrainerUI.Form1 ui;
 
-        private static System.Timers.Timer aInterval;
-
-        string[] fileNames = { "MainSaveGame.sav", "MainStatsSaveGame.sav", "MainUnlockedLevels.sav" };
-        string sourceVS = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\VaultSave");
-        string source;
-        string target = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QUBE\\Saved\\SaveGames\\");
-
-        private void Form1_Load(object sender, EventArgs e)
+        public QubeTrainer(QubeTrainerUI.Form1 ui)
         {
+            this.ui = ui;
             KeyboardHook.CreateHook(KeyReader);
-
-            ToolTip toolTip1 = new ToolTip();
-
-            toolTip1.AutoPopDelay = 10000;
-            toolTip1.InitialDelay = 10;
-            toolTip1.ReshowDelay = 10;
-            toolTip1.ShowAlways = true;
-
-            toolTip1.SetToolTip(this.label1, "If the marker positions aren't right, go to the main menu and continue the game to fix them!");
         }
 
         public void KeyReader(IntPtr wParam, IntPtr lParam)
@@ -123,7 +103,7 @@ namespace QubeTrainer
                     case KeyboardHook.VK.VK_F10:
                         toggleFlyMode();
                         break;
-                        //F11 reserved for QUBE fullscreen toggling
+                    //F11 reserved for QUBE fullscreen toggling
                     case KeyboardHook.VK.VK_F12:
                         toggleArmsVisible();
                         break;
@@ -147,27 +127,7 @@ namespace QubeTrainer
             }
         }
 
-        private void btnLevels_Click(object sender, EventArgs e)
-        {
-            levelsOpen = !levelsOpen;
-            if (levelsOpen)
-            {
-                this.Width = 600;
-                lblAuthor.Location = new Point(458, 417);
-                lblHelpers.Location = new Point(333, 431);
-                lblVersion.Location = new Point(289, 445);
-            }
-            else
-            {
-                this.Width = 450;
-                lblAuthor.Location = new Point(308, 417);
-                lblHelpers.Location = new Point(183, 431);
-                lblVersion.Location = new Point(139, 445);
-            }
-            btnLevels.Text = levelsOpen ? "Levels <" : "Levels >";
-        }
-
-        private void toggleArmsVisible()
+        public void toggleArmsVisible()
         {
             armsHidden = !armsHidden;
             if (armsHidden)
@@ -178,25 +138,25 @@ namespace QubeTrainer
             {
                 vam.WriteFloat(BaseArmsRotY, 0);
             }
-            btnHideArms.Text = armsHidden ? "Hide Arms (On)" : "Hide Arms (Off)";
+            ui.SetText(ui.btnHideArms,armsHidden ? "Hide Arms (On)" : "Hide Arms (Off)");
         }
 
-        private void toggleFlyMode()
+        public void toggleFlyMode()
         {
             flyMode = !flyMode;
             valLockY = valY;
             valLockX = valX;
             valLockZ = valZ;
 
-            btnFlyMode.Text = flyMode ? "Fly Mode (On)" : "Fly Mode (Off)";
+            ui.SetText(ui.btnFlyMode,flyMode ? "Fly Mode (On)" : "Fly Mode (Off)");
         }
 
-        private void lockX()
+        public void lockX()
         {
             if (lockedX)
             {
                 lockedX = false;
-                SLock1.Text = "Lock";
+                ui.SetText(ui.SLock1,"Lock");
             }
             else
             {
@@ -204,16 +164,16 @@ namespace QubeTrainer
                 valLockSX = 0f;
 
                 lockedX = true;
-                SLock1.Text = "Unlock";
+                ui.SetText(ui.SLock1,"Unlock");
             }
         }
 
-        private void lockY()
+        public void lockY()
         {
             if (lockedY)
             {
                 lockedY = false;
-                SLock2.Text = "Lock";
+                ui.SetText(ui.SLock2,"Lock");
             }
             else
             {
@@ -221,15 +181,16 @@ namespace QubeTrainer
                 valLockSY = 0f;
 
                 lockedY = true;
-                SLock2.Text = "Unlock";
+                ui.SetText(ui.SLock2,"Unlock");
             }
         }
 
-        private void lockZ() {
+        public void lockZ()
+        {
             if (lockedZ)
             {
                 lockedZ = false;
-                SLock3.Text = "Lock";
+                ui.SetText(ui.SLock3,"Lock");
             }
             else
             {
@@ -237,98 +198,104 @@ namespace QubeTrainer
                 valLockSZ = 0f;
 
                 lockedZ = true;
-                SLock3.Text = "Unlock";
+                ui.SetText(ui.SLock3,"Unlock");
             }
         }
 
-        private void lockSX()
+        public void lockSX()
         {
             if (lockedSX)
             {
                 lockedSX = false;
-                SLock4.Text = "Lock";
+                ui.SetText(ui.SLock4,"Lock");
             }
             else
             {
                 valLockSX = valSX;
 
                 lockedSX = true;
-                SLock4.Text = "Unlock";
+                ui.SetText(ui.SLock4,"Unlock");
             }
         }
 
-        private void lockSY()
+        public void lockSY()
         {
             if (lockedSY)
             {
                 lockedSY = false;
-                SLock5.Text = "Lock";
+                ui.SetText(ui.SLock5,"Lock");
             }
             else
             {
                 valLockSY = valSY;
 
                 lockedSY = true;
-                SLock5.Text = "Unlock";
+                ui.SetText(ui.SLock5,"Unlock");
             }
         }
 
-        private void lockSZ()
+        public void lockSZ()
         {
             if (lockedSZ)
             {
                 lockedSZ = false;
-                SLock6.Text = "Lock";
+                ui.SetText(ui.SLock6,"Lock");
             }
             else
             {
                 valLockSZ = valSZ;
 
                 lockedSZ = true;
-                SLock6.Text = "Unlock";
+                ui.SetText(ui.SLock6,"Unlock");
             }
         }
 
-        private void teleportToMarker()
+        public void teleportToMarker()
         {
             vam.WriteFloat(BaseX, valMX);
             vam.WriteFloat(BaseY, valMY);
             vam.WriteFloat(BaseZ, valMZ);
+            valLockX = valMX;
+            valLockY = valMY;
+            valLockZ = valMZ;
         }
 
-        private void restorePosition()
+        public void restorePosition()
         {
             vam.WriteFloat(BaseX, valStoreX);
             vam.WriteFloat(BaseY, valStoreY);
             vam.WriteFloat(BaseZ, valStoreZ);
+            valLockX = valStoreX;
+            valLockY = valStoreY;
+            valLockZ = valStoreZ;
         }
 
-        private void storePosition()
+        public void storePosition()
         {
             valStoreX = valX;
             valStoreY = valY;
             valStoreZ = valZ;
         }
 
-        private void toggleLowGravity()
+        public void toggleLowGravity()
         {
             if (lowGravity)
             {
-                btnLowGravity.Text = "Low Gravity (Off)";
+                ui.SetText(ui.btnLowGravity,"Low Gravity (Off)");
                 lowGravity = false;
             }
             else
             {
-                btnLowGravity.Text = "Low Gravity (On)";
+                ui.SetText(ui.btnLowGravity,"Low Gravity (On)");
                 lowGravity = true;
             }
         }
 
-        private void toggleSuperspeed()
+        public void toggleSuperspeed()
         {
             if (superSpeed)
             {
-                btnSuperSpeed.Text = "Super Speed (Off)";
+                ui.SetText(ui.btnSuperSpeed,"Super Speed (Off)");
                 superSpeed = false;
 
                 vam.WriteFloat(BaseSX, 0f);
@@ -336,37 +303,33 @@ namespace QubeTrainer
             }
             else
             {
-                btnSuperSpeed.Text = "Super Speed (On)";
+                ui.SetText(ui.btnSuperSpeed,"Super Speed (On)");
                 superSpeed = true;
             }
         }
 
-        private void toggleMoonjump()
+        public void toggleMoonjump()
         {
             if (moonjump)
             {
-                btnMoonjump.Text = "Moonjump (Off)";
+                ui.SetText(ui.btnMoonjump,"Moonjump (Off)");
                 moonjump = false;
             }
             else
             {
-                btnMoonjump.Text = "Moonjump (On)";
+                ui.SetText(ui.btnMoonjump,"Moonjump (On)");
                 moonjump = true;
             }
         }
 
-        private void connect()
+        public void connect()
         {
             processes = Process.GetProcessesByName("QUBE-Win64-Shipping");
 
             if (processes.Length > 0)
             {
-                btnConnect.Text = "Disconnect";
-
-                foreach (var button in this.Controls.OfType<Button>().Where(btn => (string)btn.Tag != "tagNoEnable"))
-                {
-                    button.Enabled = true;
-                }
+                ui.SetText(ui.btnConnect,"Disconnect");
+                ui.setAllEnabled(true);
 
                 GameProcess = processes[0];
                 vam = new VAMemory("QUBE-Win64-Shipping");
@@ -378,11 +341,11 @@ namespace QubeTrainer
             }
             else
             {
-                MessageBox.Show("Could not find an open QUBE 2 process!", "Error Finding Process", MessageBoxButtons.OK);
+                ui.showConnectionError();
             }
         }
 
-        private void setupAddresses()
+        public void setupAddresses()
         {
             BaseX = BaseY = BaseZ = BaseMX = BaseMY = BaseMZ = BaseSX = BaseSY = BaseSZ = BaseAX = BaseAY = BaseArmsRotY = GameProcess.MainModule.BaseAddress + 0x0290B008;
 
@@ -403,162 +366,18 @@ namespace QubeTrainer
             }
         }
 
-        private void disconnect()
+        public void disconnect()
         {
-            btnConnect.Text = "Connect";
-
-            foreach (var button in this.Controls.OfType<Button>().Where(btn => (string)btn.Tag != "tagNoDisable"))
-            {
-                button.Enabled = false;
-            }
+            ui.SetText(ui.btnConnect,"Connect");
+            ui.setAllEnabled(false);
 
             aInterval.Stop();
             aInterval.Dispose();
             for (int i = 0; i < 10; i++)
             {
-                SetValue("", i);
+                ui.clearAll();
             }
             connected = false;
-        }
-
-        private void btnConnect_Click(object sender, EventArgs e)
-        {
-            if (!connected)
-            {
-                connect();
-            } else
-            {
-                disconnect();
-            }
-        }
-        
-        delegate void SetTextCallback(string text, int type);
-        private void SetValue(string text, int type)
-        {
-            switch (type)
-            {
-                case 1:
-                    if (this.valPosX.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valPosX.Text = text;
-                    }
-                    break;
-                case 2:
-                    if (this.valPosY.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valPosY.Text = text;
-                    }
-                    break;
-                case 3:
-                    if (this.valPosZ.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valPosZ.Text = text;
-                    }
-                    break;
-                case 4:
-                    if (this.valMarkX.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valMarkX.Text = text;
-                    }
-                    break;
-                case 5:
-                    if (this.valMarkY.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valMarkY.Text = text;
-                    }
-                    break;
-                case 6:
-                    if (this.valMarkZ.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valMarkZ.Text = text;
-                    }
-                    break;
-                case 7:
-                    if (this.valSpeedX.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valSpeedX.Text = text;
-                    }
-                    break;
-                case 8:
-                    if (this.valAngleX.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valAngleX.Text = text;
-                    }
-                    break;
-                case 9:
-                    if (this.valAngleY.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valAngleY.Text = text;
-                    }
-                    break;
-                case 10:
-                    if (this.valSpeedY.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valSpeedY.Text = text;
-                    }
-                    break;
-                case 11:
-                    if (this.valSpeedZ.InvokeRequired)
-                    {
-                        SetTextCallback d = new SetTextCallback(SetValue);
-                        this.Invoke(d, new object[] { text, type });
-                    }
-                    else
-                    {
-                        this.valSpeedZ.Text = text;
-                    }
-                    break;
-            }
         }
 
         private void SetInterval()
@@ -568,7 +387,7 @@ namespace QubeTrainer
             aInterval.AutoReset = true;
             aInterval.Enabled = true;
         }
-        
+
         private void IntervalEvent(Object source, ElapsedEventArgs e)
         {
             if (!connected)
@@ -577,30 +396,21 @@ namespace QubeTrainer
             }
 
             valX = vam.ReadFloat(BaseX);
-            SetValue(valX.ToString(), 1);
             valY = vam.ReadFloat(BaseY);
-            SetValue(valY.ToString(), 2);
             valZ = vam.ReadFloat(BaseZ);
-            SetValue(valZ.ToString(), 3);
 
             valMX = vam.ReadFloat(BaseMX);
-            SetValue(valMX.ToString(), 4);
             valMY = vam.ReadFloat(BaseMY);
-            SetValue(valMY.ToString(), 5);
             valMZ = vam.ReadFloat(BaseMZ);
-            SetValue(valMZ.ToString(), 6);
 
             valSX = vam.ReadFloat(BaseSX);
-            SetValue(valSX.ToString(), 7);
             valSY = vam.ReadFloat(BaseSY);
-            SetValue(valSY.ToString(), 10);
             valSZ = vam.ReadFloat(BaseSZ);
-            SetValue(valSZ.ToString(), 11);
 
             valAX = vam.ReadFloat(BaseAX);
-            SetValue(valAX.ToString(), 8);
             valAY = vam.ReadFloat(BaseAY);
-            SetValue(valAY.ToString(), 9);
+
+            ui.updateAllValues();
 
             if (lockedX)
             {
@@ -781,322 +591,9 @@ namespace QubeTrainer
             valAYOld = valAY;
         }
 
-        private void valMarkY_MouseDown(object sender, MouseEventArgs e)
+        public void writeFloat(IntPtr address, float newValue)
         {
-            if (connected)
-            {
-                using (Form2 form2 = new Form2(valMY))
-                {
-                    DialogResult dr = form2.ShowDialog(this);
-                    if (dr == DialogResult.OK)
-                    {
-                        vam.WriteFloat(BaseMY, float.Parse(form2.getNewVal()));
-                    }
-                    form2.Close();
-                }
-            }
-        }
-
-        private void valMarkZ_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (connected)
-            {
-                using (Form2 form2 = new Form2(valMZ))
-                {
-                    DialogResult dr = form2.ShowDialog(this);
-                    if (dr == DialogResult.OK)
-                    {
-                        vam.WriteFloat(BaseMZ, float.Parse(form2.getNewVal()));
-                    }
-                    form2.Close();
-                }
-            }
-        }
-
-        private void valMarkX_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (connected)
-            {
-                using (Form2 form2 = new Form2(valMX))
-                {
-                    DialogResult dr = form2.ShowDialog(this);
-                    if (dr == DialogResult.OK)
-                    {
-                        vam.WriteFloat(BaseMX, float.Parse(form2.getNewVal()));
-                    }
-                    form2.Close();
-                }
-            }
-        }
-
-        private void valPosZ_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (connected)
-            {
-                using (Form2 form2 = new Form2(valZ))
-                {
-                    DialogResult dr = form2.ShowDialog(this);
-                    if (dr == DialogResult.OK)
-                    {
-                        vam.WriteFloat(BaseZ, float.Parse(form2.getNewVal()));
-                        valLockZ = float.Parse(form2.getNewVal());
-                    }
-                    form2.Close();
-                }
-            }
-        }
-
-        private void valPosY_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (connected)
-            {
-                using (Form2 form2 = new Form2(valY))
-                {
-                    DialogResult dr = form2.ShowDialog(this);
-                    if (dr == DialogResult.OK)
-                    {
-                        vam.WriteFloat(BaseY, float.Parse(form2.getNewVal()));
-                        valLockY = float.Parse(form2.getNewVal());
-                    }
-                    form2.Close();
-                }
-            }
-        }
-
-        private void valPosX_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (connected)
-            {
-                using (Form2 form2 = new Form2(valX))
-                {
-                    DialogResult dr = form2.ShowDialog(this);
-                    if (dr == DialogResult.OK)
-                    {
-                        vam.WriteFloat(BaseX, float.Parse(form2.getNewVal()));
-                        valLockX = float.Parse(form2.getNewVal());
-                    }
-                    form2.Close();
-                }
-            }
-        }
-
-        private void btnMoonjump_Click(object sender, EventArgs e)
-        {
-            toggleMoonjump();
-        }
-
-        private void btnSuperSpeed_Click(object sender, EventArgs e)
-        {
-            toggleSuperspeed();
-        }
-
-        private void btnLowGravity_Click(object sender, EventArgs e)
-        {
-            toggleLowGravity();
-        }
-
-        private void btnTeleportToMarker_Click(object sender, EventArgs e)
-        {
-            teleportToMarker();
-        }
-
-        private void btnStore_Click(object sender, EventArgs e)
-        {
-            storePosition();
-        }
-
-        private void btnRestore_Click(object sender, EventArgs e)
-        {
-            restorePosition();
-        }
-
-        private void btnVaultSave_Click(object sender, EventArgs e)
-        {
-            for (int i = 0; i < fileNames.Length; i++)
-            {
-                string sourceFile = System.IO.Path.Combine(sourceVS, fileNames[i]);
-                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
-
-                System.IO.File.Copy(sourceFile, targetFile, true);
-            }
-        }
-
-        private void SLock2_Click(object sender, EventArgs e)
-        {
-            lockY();
-        }
-
-        private void SLock1_Click(object sender, EventArgs e)
-        {
-            lockX();
-        }
-
-        private void SLock3_Click(object sender, EventArgs e)
-        {
-            lockZ();
-        }
-
-        private void SLock4_Click(object sender, EventArgs e)
-        {
-            lockSX();
-        }
-
-        private void SLock5_Click(object sender, EventArgs e)
-        {
-            lockSY();
-        }
-
-        private void SLock6_Click(object sender, EventArgs e)
-        {
-            lockSZ();
-        }
-
-        private void btnDarkMode_Click(object sender, EventArgs e)
-        {
-            toggleDarkMode();
-        }
-
-        private void btnFlyMode_Click(object sender, EventArgs e)
-        {
-            toggleFlyMode();
-        }
-
-        private void btnHideArms_Click(object sender, EventArgs e)
-        {
-            toggleArmsVisible();
-        }
-
-        private void toggleDarkMode()
-        {
-            if (this.BackColor == Color.WhiteSmoke)
-            {
-                btnDarkMode.Text = "Light Mode";
-                setAllForegroundColors(Color.WhiteSmoke);
-                this.BackColor = Color.FromArgb(64, 64, 64);
-            }
-            else
-            {
-                btnDarkMode.Text = "Dark Mode";
-                setAllForegroundColors(Color.Black);
-                this.BackColor = Color.WhiteSmoke;
-            }
-        }
-
-        public void setAllForegroundColors(Color color)
-        {
-            foreach (var label in this.Controls.OfType<Label>())
-            {
-                label.ForeColor = color;
-            }
-        }
-
-        private void chapterClicks(object sender, EventArgs e)
-        {
-            switch ((sender as Button).Text)
-            {
-                case "Chapter 1":
-                    setLevelButtons(1); break;
-                case "Chapter 2":
-                    setLevelButtons(2); break;
-                case "Chapter 3":
-                    setLevelButtons(3); break;
-                case "Chapter 4":
-                    setLevelButtons(4); break;
-                case "Chapter 5":
-                    setLevelButtons(5); break;
-                case "Chapter 6":
-                    setLevelButtons(6); break;
-                case "Chapter 7":
-                    setLevelButtons(7); break;
-                case "Chapter 8":
-                    setLevelButtons(8); break;
-                case "Chapter 9":
-                    setLevelButtons(9); break;
-                case "Chapter 10":
-                    setLevelButtons(10); break;
-                case "Chapter 11":
-                    setLevelButtons(11); break;
-                default:
-                    MessageBox.Show("Something went wrong, please ask for help in the discord!", "Error!", MessageBoxButtons.OK);
-                    break;
-            }
-        }
-
-        private void setLevelButtons(int chapterNum)
-        {
-            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagMain"))
-                button.Visible = false;
-            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagCh" + chapterNum))
-                button.Visible = true;
-            btnBack.Enabled = true;
-        }
-
-        private void btnBack_Click(object sender, EventArgs e)
-        {
-            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>())
-                button.Visible = false;
-            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagMain"))
-                button.Visible = true;
-            btnBack.Enabled = false;
-        }
-
-        private void btnReloadSave_Click(object sender, EventArgs e)
-        {
-            if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-            {
-                using (StreamReader sr = File.OpenText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-                {
-                    string s = "";
-                    if ((s = sr.ReadLine()) != null)
-                    {
-                        source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + s);
-                        for (int i = 0; i < fileNames.Length; i++)
-                        {
-                            string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
-                            string targetFile = System.IO.Path.Combine(target, fileNames[i]);
-
-                            System.IO.File.Copy(sourceFile, targetFile, true);
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("Something went wrong, please ask for help in the discord!", "Error!", MessageBoxButtons.OK);
-                    }
-                }
-            }
-            else
-            {
-                MessageBox.Show("No existing previous save!", "Error!", MessageBoxButtons.OK);
-            }
-        }
-
-        private void setNewSave(object sender, EventArgs e)
-        {
-            source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + (sender as Button).Text);
-            for (int i = 0; i < fileNames.Length; i++)
-            {
-                string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
-                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
-
-                System.IO.File.Copy(sourceFile, targetFile, true);
-            }
-
-            if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-            {
-                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-                {
-                    sw.WriteLine((sender as Button).Text);
-                }
-            }
-            else
-            {
-                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-                {
-                    sw.WriteLine((sender as Button).Text);
-                }
-            }
-
-            SystemSounds.Beep.Play();
+            vam.WriteFloat(address, newValue);
         }
     }
 }

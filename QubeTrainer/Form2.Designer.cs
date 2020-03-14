@@ -1,4 +1,4 @@
-﻿namespace QubeTrainer
+﻿namespace QubeTrainerNamespace
 {
     partial class Form2
     {

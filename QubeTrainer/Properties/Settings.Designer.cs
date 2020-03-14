@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace QubeTrainer.Properties
+namespace QubeTrainerNamespace.Properties
 {
 
 

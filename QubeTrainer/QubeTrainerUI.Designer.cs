@@ -522,7 +522,7 @@
             this.lblAuthor.Name = "lblAuthor";
             this.lblAuthor.Size = new System.Drawing.Size(114, 13);
             this.lblAuthor.TabIndex = 41;
-            this.lblAuthor.Text = "Made by SmokeyRuns";
+            this.lblAuthor.Text = "Made by SmokeyRuns and MonsterDruide1";
             // 
             // SLock1
             // 
@@ -575,7 +575,7 @@
             this.lblHelpers.Name = "lblHelpers";
             this.lblHelpers.Size = new System.Drawing.Size(239, 13);
             this.lblHelpers.TabIndex = 48;
-            this.lblHelpers.Text = "Thanks to CalMc and MonsterDruide1 for helping";
+            this.lblHelpers.Text = "Thanks to CalMc for helping";
             // 
             // valAngleY
             // 

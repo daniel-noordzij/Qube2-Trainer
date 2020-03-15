@@ -2,7 +2,7 @@
 
 This trainer is meant to help Speedrunners practice their speed in sections by replaying them using the teleport function, but can be used by everyone who wants to mess around and look into the Out of Bounds in Q.U.B.E. 2.
 
-![screenshot of trainer](https://github.com/MonsterDruide1/Qube2-Trainer/Screenshot.jpg)
+![screenshot of trainer](https://github.com/MonsterDruide1/Qube2-Trainer/blob/master/Screenshot.jpg)
 
 ### How does it work?
 

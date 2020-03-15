@@ -1,16 +1,11 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
-using Virtua_Cop_2Trainer;
-using System.Runtime.InteropServices;
-using System.IO;
+using System.Linq;
 
 using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
-using System.Collections.Generic;
 
 using QubeTrainerNamespace;
-using System.Linq;
-using System.Media;
 
 namespace QubeTrainerUI
 {

@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.IO;
-using System.Linq;
 using System.Media;
 using System.Timers;
 
-using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
 using Virtua_Cop_2Trainer;
 
 namespace QubeTrainerNamespace

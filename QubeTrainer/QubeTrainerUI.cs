@@ -266,26 +266,31 @@ namespace QubeTrainerUI
             }
         }
 
-        private void SLock4_Click(object sender, EventArgs e)
+        private void toggleDarkMode()
         {
-            trainer.lockSX();
+            if (this.BackColor == Color.WhiteSmoke)
+            {
+                btnDarkMode.Text = "Light Mode";
+                setAllForegroundColors(Color.WhiteSmoke);
+                this.BackColor = Color.FromArgb(64, 64, 64);
+            }
+            else
+            {
+                btnDarkMode.Text = "Dark Mode";
+                setAllForegroundColors(Color.Black);
+                this.BackColor = Color.WhiteSmoke;
+            }
         }
 
-        private void SLock5_Click(object sender, EventArgs e)
+        public void setAllForegroundColors(Color color)
         {
-            trainer.lockSY();
+            foreach (var label in this.Controls.OfType<Label>())
+            {
+                label.ForeColor = color;
+            }
         }
 
-        private void SLock6_Click(object sender, EventArgs e)
-        {
-            trainer.lockSZ();
-        }
-
-        private void btnDarkMode_Click(object sender, EventArgs e)
-        {
-            toggleDarkMode();
-        }
-
+        #region listeners for number fields: read new value from dialog and write it to memory
         private void valMarkX_MouseDown(object sender, MouseEventArgs e)
         {
             if (trainer.connected)
@@ -338,6 +343,28 @@ namespace QubeTrainerUI
                 trainer.valLockZ = newVal;
                 trainer.writeFloat(trainer.BaseZ, newVal);
             }
+        }
+        #endregion
+
+        #region single-action listeners: Just pass them on to trainer
+        private void SLock4_Click(object sender, EventArgs e)
+        {
+            trainer.lockSX();
+        }
+
+        private void SLock5_Click(object sender, EventArgs e)
+        {
+            trainer.lockSY();
+        }
+
+        private void SLock6_Click(object sender, EventArgs e)
+        {
+            trainer.lockSZ();
+        }
+
+        private void btnDarkMode_Click(object sender, EventArgs e)
+        {
+            toggleDarkMode();
         }
 
         private void btnMoonjump_Click(object sender, EventArgs e)
@@ -394,29 +421,6 @@ namespace QubeTrainerUI
         {
             trainer.toggleArmsVisible();
         }
-
-        private void toggleDarkMode()
-        {
-            if (this.BackColor == Color.WhiteSmoke)
-            {
-                btnDarkMode.Text = "Light Mode";
-                setAllForegroundColors(Color.WhiteSmoke);
-                this.BackColor = Color.FromArgb(64, 64, 64);
-            }
-            else
-            {
-                btnDarkMode.Text = "Dark Mode";
-                setAllForegroundColors(Color.Black);
-                this.BackColor = Color.WhiteSmoke;
-            }
-        }
-
-        public void setAllForegroundColors(Color color)
-        {
-            foreach (var label in this.Controls.OfType<Label>())
-            {
-                label.ForeColor = color;
-            }
-        }
+        #endregion
     }
 }

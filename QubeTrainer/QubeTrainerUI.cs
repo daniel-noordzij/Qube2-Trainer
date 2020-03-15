@@ -16,19 +16,14 @@ namespace QubeTrainerUI
 {
     public partial class Form1 : Form
     {
+        QubeTrainer trainer;
+
+        bool levelsOpen = false;
+
         public Form1()
         {
             InitializeComponent();
         }
-
-        QubeTrainer trainer;
-
-        string[] fileNames = { "MainSaveGame.sav", "MainStatsSaveGame.sav", "MainUnlockedLevels.sav" };
-        string sourceVS = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\VaultSave");
-        string source;
-        string target = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QUBE\\Saved\\SaveGames\\");
-
-        bool levelsOpen = false;
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -70,9 +65,9 @@ namespace QubeTrainerUI
             }
         }
 
-        public void showConnectionError()
+        public void showMessageBox(String message, String title)
         {
-            MessageBox.Show("Could not find an open QUBE 2 process!", "Error Finding Process", MessageBoxButtons.OK);
+            MessageBox.Show(message, title, MessageBoxButtons.OK);
         }
 
         public void updateAllValues()
@@ -198,72 +193,17 @@ namespace QubeTrainerUI
 
         private void btnReloadSave_Click(object sender, EventArgs e)
         {
-            if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-            {
-                using (StreamReader sr = File.OpenText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-                {
-                    string s = "";
-                    if ((s = sr.ReadLine()) != null)
-                    {
-                        source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + s);
-                        for (int i = 0; i < fileNames.Length; i++)
-                        {
-                            string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
-                            string targetFile = System.IO.Path.Combine(target, fileNames[i]);
-
-                            System.IO.File.Copy(sourceFile, targetFile, true);
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("Something went wrong, please ask for help in the discord!", "Error!", MessageBoxButtons.OK);
-                    }
-                }
-            }
-            else
-            {
-                MessageBox.Show("No existing previous save!", "Error!", MessageBoxButtons.OK);
-            }
+            trainer.reloadSave();
         }
 
         private void setNewSave(object sender, EventArgs e)
         {
-            source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + (sender as Button).Text);
-            for (int i = 0; i < fileNames.Length; i++)
-            {
-                string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
-                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
-
-                System.IO.File.Copy(sourceFile, targetFile, true);
-            }
-
-            if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-            {
-                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-                {
-                    sw.WriteLine((sender as Button).Text);
-                }
-            }
-            else
-            {
-                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-                {
-                    sw.WriteLine((sender as Button).Text);
-                }
-            }
-
-            SystemSounds.Beep.Play();
+            trainer.setSave((sender as Button).Text);
         }
 
         private void btnVaultSave_Click(object sender, EventArgs e)
         {
-            for (int i = 0; i < fileNames.Length; i++)
-            {
-                string sourceFile = System.IO.Path.Combine(sourceVS, fileNames[i]);
-                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
-
-                System.IO.File.Copy(sourceFile, targetFile, true);
-            }
+            trainer.loadVaultSave();
         }
 
         private void toggleDarkMode()

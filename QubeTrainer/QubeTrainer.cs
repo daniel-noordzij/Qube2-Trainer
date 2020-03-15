@@ -46,7 +46,11 @@ namespace QubeTrainerNamespace
         bool superSpeed = false;
         bool flyMode = false;
         bool armsHidden = false;
-        bool levelsOpen = false;
+
+        string[] fileNames = { "MainSaveGame.sav", "MainStatsSaveGame.sav", "MainUnlockedLevels.sav" };
+        string sourceVS = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\VaultSave");
+        string source;
+        string target = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QUBE\\Saved\\SaveGames\\");
 
         public bool connected = false;
 
@@ -124,6 +128,76 @@ namespace QubeTrainerNamespace
                         currentKeys.Remove(key);
                         break;
                 }
+            }
+        }
+
+        public void setSave(String name)
+        {
+            source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + name);
+            for (int i = 0; i < fileNames.Length; i++)
+            {
+                string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
+                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+
+                System.IO.File.Copy(sourceFile, targetFile, true);
+            }
+
+            if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+            {
+                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+                {
+                    sw.WriteLine(name);
+                }
+            }
+            else
+            {
+                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+                {
+                    sw.WriteLine(name);
+                }
+            }
+
+            SystemSounds.Beep.Play();
+        }
+
+        public void reloadSave()
+        {
+            if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+            {
+                using (StreamReader sr = File.OpenText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+                {
+                    string s = "";
+                    if ((s = sr.ReadLine()) != null)
+                    {
+                        source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + s);
+                        for (int i = 0; i < fileNames.Length; i++)
+                        {
+                            string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
+                            string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+
+                            System.IO.File.Copy(sourceFile, targetFile, true);
+                        }
+                    }
+                    else
+                    {
+                        ui.showMessageBox("Something went wrong, please ask for help in the discord!", "Error!");
+                    }
+                }
+            }
+            else
+            {
+                ui.showMessageBox("No existing previous save!", "Error!");
+            }
+        }
+
+        public void loadVaultSave()
+        {
+            for (int i = 0; i < fileNames.Length; i++)
+            {
+                string sourceFile = System.IO.Path.Combine(sourceVS, fileNames[i]);
+                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+
+                System.IO.File.Copy(sourceFile, targetFile, true);
             }
         }
 
@@ -341,7 +415,7 @@ namespace QubeTrainerNamespace
             }
             else
             {
-                ui.showConnectionError();
+                ui.showMessageBox("Could not find an open QUBE 2 process!", "Error Finding Process");
             }
         }
 

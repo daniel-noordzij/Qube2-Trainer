@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.IO;
-using System.Linq;
 using System.Media;
 using System.Timers;
 
-using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
 using Virtua_Cop_2Trainer;
 
 namespace QubeTrainerNamespace
@@ -34,19 +32,12 @@ namespace QubeTrainerNamespace
 
         int turnValue;
 
-        bool lockedX = false;
-        bool lockedY = false;
-        bool lockedZ = false;
-        bool lockedSX = false;
-        bool lockedSY = false;
-        bool lockedSZ = false;
-        bool moonjump = false;
-        bool singleJump = false;
-        bool lowGravity = false;
-        bool superSpeed = false;
-        bool flyMode = false;
-        bool armsHidden = false;
-        bool levelsOpen = false;
+        bool lockedX, lockedY, lockedZ, lockedSX, lockedSY, lockedSZ, moonjump, singleJump, lowGravity, superSpeed, flyMode, armsHidden = false;
+
+        string[] fileNames = { "MainSaveGame.sav", "MainStatsSaveGame.sav", "MainUnlockedLevels.sav" };
+        string sourceVS = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\VaultSave");
+        string source;
+        string target = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QUBE\\Saved\\SaveGames\\");
 
         public bool connected = false;
 
@@ -57,7 +48,7 @@ namespace QubeTrainerNamespace
         List<KeyboardHook.VK> currentKeys = new List<KeyboardHook.VK>();
 
         public float valX, valY, valZ, valMX, valMY, valMZ, valSX, valSY, valSZ, valAX, valAY, valLockX, valLockY, valLockZ, valLockSX, valLockSY, valLockSZ, valStoreX, valStoreY, valStoreZ;
-        float valXOld, valYOld, valZOld, valMXOld, valMYOld, valMZOld, valSXOld, valSYOld, valSZOld, valAXOld, valAYOld;
+        public float hashOfValues;
         QubeTrainerUI.Form1 ui;
 
         public QubeTrainer(QubeTrainerUI.Form1 ui)
@@ -124,6 +115,76 @@ namespace QubeTrainerNamespace
                         currentKeys.Remove(key);
                         break;
                 }
+            }
+        }
+
+        public void setSave(String name)
+        {
+            source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + name);
+            for (int i = 0; i < fileNames.Length; i++)
+            {
+                string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
+                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+
+                System.IO.File.Copy(sourceFile, targetFile, true);
+            }
+
+            if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+            {
+                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+                {
+                    sw.WriteLine(name);
+                }
+            }
+            else
+            {
+                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+                {
+                    sw.WriteLine(name);
+                }
+            }
+
+            SystemSounds.Beep.Play();
+        }
+
+        public void reloadSave()
+        {
+            if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+            {
+                using (StreamReader sr = File.OpenText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
+                {
+                    string s = "";
+                    if ((s = sr.ReadLine()) != null)
+                    {
+                        source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + s);
+                        for (int i = 0; i < fileNames.Length; i++)
+                        {
+                            string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
+                            string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+
+                            System.IO.File.Copy(sourceFile, targetFile, true);
+                        }
+                    }
+                    else
+                    {
+                        ui.showMessageBox("Something went wrong, please ask for help in the discord!", "Error!");
+                    }
+                }
+            }
+            else
+            {
+                ui.showMessageBox("No existing previous save!", "Error!");
+            }
+        }
+
+        public void loadVaultSave()
+        {
+            for (int i = 0; i < fileNames.Length; i++)
+            {
+                string sourceFile = System.IO.Path.Combine(sourceVS, fileNames[i]);
+                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+
+                System.IO.File.Copy(sourceFile, targetFile, true);
             }
         }
 
@@ -341,7 +402,7 @@ namespace QubeTrainerNamespace
             }
             else
             {
-                ui.showConnectionError();
+                ui.showMessageBox("Could not find an open QUBE 2 process!", "Error Finding Process");
             }
         }
 
@@ -566,10 +627,12 @@ namespace QubeTrainerNamespace
                 vam.WriteFloat(BaseSY, -400);
             }
 
-            if (valX == valXOld && valY == valYOld && valZ == valZOld && valMX == valMXOld && valMY == valMYOld && valMZ == valMZOld && valSX == valSXOld && valSY == valSYOld && valSZ == valSZOld && valAX == valAXOld && valAY == valAYOld)
+            int newHash = calculateHashOfValues();
+            if (hashOfValues == newHash)
             {
                 checkCounter++;
             }
+            hashOfValues = newHash;
 
             if (checkCounter >= 150)
             {
@@ -577,18 +640,23 @@ namespace QubeTrainerNamespace
 
                 setupAddresses();
             }
+        }
 
-            valXOld = valX;
-            valYOld = valY;
-            valZOld = valZ;
-            valMXOld = valMX;
-            valMYOld = valMY;
-            valMZOld = valMZ;
-            valSXOld = valSX;
-            valSYOld = valSY;
-            valSZOld = valSZ;
-            valAXOld = valAX;
-            valAYOld = valAY;
+        public int calculateHashOfValues()
+        {
+            int hash = 139;
+            hash = (hash * 47) + valX.GetHashCode();
+            hash = (hash * 47) + valY.GetHashCode();
+            hash = (hash * 47) + valZ.GetHashCode();
+            hash = (hash * 47) + valMX.GetHashCode();
+            hash = (hash * 47) + valMY.GetHashCode();
+            hash = (hash * 47) + valMZ.GetHashCode();
+            hash = (hash * 47) + valSX.GetHashCode();
+            hash = (hash * 47) + valSY.GetHashCode();
+            hash = (hash * 47) + valSZ.GetHashCode();
+            hash = (hash * 47) + valAX.GetHashCode();
+            hash = (hash * 47) + valAY.GetHashCode();
+            return hash;
         }
 
         public void writeFloat(IntPtr address, float newValue)

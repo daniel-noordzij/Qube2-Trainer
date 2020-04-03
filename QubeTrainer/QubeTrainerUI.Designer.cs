@@ -518,11 +518,11 @@
             // lblAuthor
             // 
             this.lblAuthor.AutoSize = true;
-            this.lblAuthor.Location = new System.Drawing.Point(308, 417);
+            this.lblAuthor.Location = new System.Drawing.Point(215, 418);
             this.lblAuthor.Name = "lblAuthor";
-            this.lblAuthor.Size = new System.Drawing.Size(114, 13);
+            this.lblAuthor.Size = new System.Drawing.Size(213, 13);
             this.lblAuthor.TabIndex = 41;
-            this.lblAuthor.Text = "Made by SmokeyRuns";
+            this.lblAuthor.Text = "Made by SmokeyRuns and MonsterDruide1";
             // 
             // SLock1
             // 
@@ -571,11 +571,11 @@
             // lblHelpers
             // 
             this.lblHelpers.AutoSize = true;
-            this.lblHelpers.Location = new System.Drawing.Point(183, 431);
+            this.lblHelpers.Location = new System.Drawing.Point(183, 432);
             this.lblHelpers.Name = "lblHelpers";
-            this.lblHelpers.Size = new System.Drawing.Size(239, 13);
+            this.lblHelpers.Size = new System.Drawing.Size(140, 13);
             this.lblHelpers.TabIndex = 48;
-            this.lblHelpers.Text = "Thanks to CalMc and MonsterDruide1 for helping";
+            this.lblHelpers.Text = "Thanks to CalMc for helping";
             // 
             // valAngleY
             // 

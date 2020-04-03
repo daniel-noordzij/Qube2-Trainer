@@ -1,34 +1,24 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
-using Virtua_Cop_2Trainer;
-using System.Runtime.InteropServices;
-using System.IO;
+using System.Linq;
 
 using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
-using System.Collections.Generic;
 
 using QubeTrainerNamespace;
-using System.Linq;
-using System.Media;
 
 namespace QubeTrainerUI
 {
     public partial class Form1 : Form
     {
+        QubeTrainer trainer;
+
+        bool levelsOpen = false;
+
         public Form1()
         {
             InitializeComponent();
         }
-
-        QubeTrainer trainer;
-
-        string[] fileNames = { "MainSaveGame.sav", "MainStatsSaveGame.sav", "MainUnlockedLevels.sav" };
-        string sourceVS = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\VaultSave");
-        string source;
-        string target = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QUBE\\Saved\\SaveGames\\");
-
-        bool levelsOpen = false;
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -70,9 +60,9 @@ namespace QubeTrainerUI
             }
         }
 
-        public void showConnectionError()
+        public void showMessageBox(String message, String title)
         {
-            MessageBox.Show("Could not find an open QUBE 2 process!", "Error Finding Process", MessageBoxButtons.OK);
+            MessageBox.Show(message, title, MessageBoxButtons.OK);
         }
 
         public void updateAllValues()
@@ -198,94 +188,44 @@ namespace QubeTrainerUI
 
         private void btnReloadSave_Click(object sender, EventArgs e)
         {
-            if (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-            {
-                using (StreamReader sr = File.OpenText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-                {
-                    string s = "";
-                    if ((s = sr.ReadLine()) != null)
-                    {
-                        source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + s);
-                        for (int i = 0; i < fileNames.Length; i++)
-                        {
-                            string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
-                            string targetFile = System.IO.Path.Combine(target, fileNames[i]);
-
-                            System.IO.File.Copy(sourceFile, targetFile, true);
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("Something went wrong, please ask for help in the discord!", "Error!", MessageBoxButtons.OK);
-                    }
-                }
-            }
-            else
-            {
-                MessageBox.Show("No existing previous save!", "Error!", MessageBoxButtons.OK);
-            }
+            trainer.reloadSave();
         }
 
         private void setNewSave(object sender, EventArgs e)
         {
-            source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + (sender as Button).Text);
-            for (int i = 0; i < fileNames.Length; i++)
-            {
-                string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
-                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
-
-                System.IO.File.Copy(sourceFile, targetFile, true);
-            }
-
-            if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-            {
-                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-                {
-                    sw.WriteLine((sender as Button).Text);
-                }
-            }
-            else
-            {
-                using (StreamWriter sw = File.CreateText(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
-                {
-                    sw.WriteLine((sender as Button).Text);
-                }
-            }
-
-            SystemSounds.Beep.Play();
+            trainer.setSave((sender as Button).Text);
         }
 
         private void btnVaultSave_Click(object sender, EventArgs e)
         {
-            for (int i = 0; i < fileNames.Length; i++)
-            {
-                string sourceFile = System.IO.Path.Combine(sourceVS, fileNames[i]);
-                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+            trainer.loadVaultSave();
+        }
 
-                System.IO.File.Copy(sourceFile, targetFile, true);
+        private void toggleDarkMode()
+        {
+            if (this.BackColor == Color.WhiteSmoke)
+            {
+                btnDarkMode.Text = "Light Mode";
+                setAllForegroundColors(Color.WhiteSmoke);
+                this.BackColor = Color.FromArgb(64, 64, 64);
+            }
+            else
+            {
+                btnDarkMode.Text = "Dark Mode";
+                setAllForegroundColors(Color.Black);
+                this.BackColor = Color.WhiteSmoke;
             }
         }
 
-        private void SLock4_Click(object sender, EventArgs e)
+        public void setAllForegroundColors(Color color)
         {
-            trainer.lockSX();
+            foreach (var label in this.Controls.OfType<Label>())
+            {
+                label.ForeColor = color;
+            }
         }
 
-        private void SLock5_Click(object sender, EventArgs e)
-        {
-            trainer.lockSY();
-        }
-
-        private void SLock6_Click(object sender, EventArgs e)
-        {
-            trainer.lockSZ();
-        }
-
-        private void btnDarkMode_Click(object sender, EventArgs e)
-        {
-            toggleDarkMode();
-        }
-
+        #region listeners for number fields: read new value from dialog and write it to memory
         private void valMarkX_MouseDown(object sender, MouseEventArgs e)
         {
             if (trainer.connected)
@@ -338,6 +278,28 @@ namespace QubeTrainerUI
                 trainer.valLockZ = newVal;
                 trainer.writeFloat(trainer.BaseZ, newVal);
             }
+        }
+        #endregion
+
+        #region single-action listeners: Just pass them on to trainer
+        private void SLock4_Click(object sender, EventArgs e)
+        {
+            trainer.lockSX();
+        }
+
+        private void SLock5_Click(object sender, EventArgs e)
+        {
+            trainer.lockSY();
+        }
+
+        private void SLock6_Click(object sender, EventArgs e)
+        {
+            trainer.lockSZ();
+        }
+
+        private void btnDarkMode_Click(object sender, EventArgs e)
+        {
+            toggleDarkMode();
         }
 
         private void btnMoonjump_Click(object sender, EventArgs e)
@@ -394,29 +356,6 @@ namespace QubeTrainerUI
         {
             trainer.toggleArmsVisible();
         }
-
-        private void toggleDarkMode()
-        {
-            if (this.BackColor == Color.WhiteSmoke)
-            {
-                btnDarkMode.Text = "Light Mode";
-                setAllForegroundColors(Color.WhiteSmoke);
-                this.BackColor = Color.FromArgb(64, 64, 64);
-            }
-            else
-            {
-                btnDarkMode.Text = "Dark Mode";
-                setAllForegroundColors(Color.Black);
-                this.BackColor = Color.WhiteSmoke;
-            }
-        }
-
-        public void setAllForegroundColors(Color color)
-        {
-            foreach (var label in this.Controls.OfType<Label>())
-            {
-                label.ForeColor = color;
-            }
-        }
+        #endregion
     }
 }

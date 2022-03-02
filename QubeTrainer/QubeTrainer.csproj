@@ -61,7 +61,7 @@
     <GenerateManifests>true</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>true</SignManifests>
+    <SignManifests>false</SignManifests>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -89,6 +89,9 @@
     <ApplicationIcon>qubeicon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="MetroFramework">
+      <HintPath>..\..\QubeTrainer 2.0\packages\MetroModernUI.1.4.0.0\lib\net\MetroFramework.dll</HintPath>
+    </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -139,6 +142,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
@@ -168,6 +172,17 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <None Include="bin\Debug\icons\play_btn.png" />
+    <None Include="bin\Debug\icons\play_btn256.png" />
+    <None Include="bin\Debug\icons\stop_btn256.png" />
+    <None Include="bin\Debug\icons\git_icon.png" />
+    <None Include="bin\Debug\icons\disc_icon.png" />
+    <None Include="bin\Debug\icons\src_icon.png" />
+    <None Include="bin\Debug\icons\maingameimg-min.png" />
+    <None Include="bin\Debug\icons\lostorbitimg-min.png" />
+    <None Include="bin\Debug\icons\aftermathimg-min.png" />
+    <None Include="bin\Debug\icons\hoverimg.png" />
+    <None Include="bin\Debug\icons\hoverimg2.png" />
     <Content Include="qubeicon.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

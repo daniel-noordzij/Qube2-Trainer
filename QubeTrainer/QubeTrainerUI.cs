@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
 
@@ -11,9 +13,16 @@ namespace QubeTrainerUI
 {
     public partial class Form1 : Form
     {
-        QubeTrainer trainer;
+        QubeTrainerClass trainer;
 
-        bool levelsOpen = false;
+        private bool mouseDown;
+        private Point lastLocation;
+        private int currentTab = 1;
+        private string currentChapterTab = "0";
+        private string selectedLevel = "0";
+
+        public bool hotkeyClicked = false;
+        public Label lastHotkey;
 
         public Form1()
         {
@@ -22,16 +31,28 @@ namespace QubeTrainerUI
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            trainer = new QubeTrainer(this);
-
-            ToolTip toolTip1 = new ToolTip();
-
-            toolTip1.AutoPopDelay = 10000;
-            toolTip1.InitialDelay = 10;
-            toolTip1.ReshowDelay = 10;
-            toolTip1.ShowAlways = true;
-
-            toolTip1.SetToolTip(this.label1, "If the marker positions aren't right, go to the main menu and continue the game to fix them!");
+            trainer = new QubeTrainerClass(this);
+            trainer.checkNewUpdate();
+        }
+        private void pnlTopBar_MouseDown(object sender, MouseEventArgs e)
+        {
+            this.Cursor = Cursors.SizeAll;
+            mouseDown = true;
+            lastLocation = e.Location;
+        }
+        private void pnlTopBar_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (mouseDown)
+            {
+                this.Location = new Point(
+                    (this.Location.X - lastLocation.X) + e.X, (this.Location.Y - lastLocation.Y) + e.Y);
+                this.Update();
+            }
+        }
+        private void pnlTopBar_MouseUp(object sender, MouseEventArgs e)
+        {
+            this.Cursor = Cursors.Default;
+            mouseDown = false;
         }
 
         public void clearAll()
@@ -54,7 +75,7 @@ namespace QubeTrainerUI
 
         public void setAllEnabled(bool enabled)
         {
-            foreach (var button in this.Controls.OfType<Button>().Where(btn => (string)btn.Tag != "tagNoDisable"))
+            foreach (var button in pnlLevels.Controls.OfType<Button>())
             {
                 button.Enabled = enabled;
             }
@@ -81,26 +102,6 @@ namespace QubeTrainerUI
             SetText(valSpeedX,trainer.valSX.ToString());
             SetText(valSpeedY,trainer.valSY.ToString());
             SetText(valSpeedZ,trainer.valSZ.ToString());
-        }
-
-        private void btnLevels_Click(object sender, EventArgs e)
-        {
-            levelsOpen = !levelsOpen;
-            if (levelsOpen)
-            {
-                this.Width = 600;
-                lblAuthor.Location = new Point(458, 417);
-                lblHelpers.Location = new Point(333, 431);
-                lblVersion.Location = new Point(289, 445);
-            }
-            else
-            {
-                this.Width = 450;
-                lblAuthor.Location = new Point(308, 417);
-                lblHelpers.Location = new Point(183, 431);
-                lblVersion.Location = new Point(139, 445);
-            }
-            btnLevels.Text = levelsOpen ? "Levels <" : "Levels >";
         }
 
         private void btnConnect_Click(object sender, EventArgs e)
@@ -136,54 +137,15 @@ namespace QubeTrainerUI
             return 0;
         }
 
-        private void chapterClicks(object sender, EventArgs e)
-        {
-            switch ((sender as Button).Text)
-            {
-                case "Chapter 1":
-                    setLevelButtons(1); break;
-                case "Chapter 2":
-                    setLevelButtons(2); break;
-                case "Chapter 3":
-                    setLevelButtons(3); break;
-                case "Chapter 4":
-                    setLevelButtons(4); break;
-                case "Chapter 5":
-                    setLevelButtons(5); break;
-                case "Chapter 6":
-                    setLevelButtons(6); break;
-                case "Chapter 7":
-                    setLevelButtons(7); break;
-                case "Chapter 8":
-                    setLevelButtons(8); break;
-                case "Chapter 9":
-                    setLevelButtons(9); break;
-                case "Chapter 10":
-                    setLevelButtons(10); break;
-                case "Chapter 11":
-                    setLevelButtons(11); break;
-                default:
-                    MessageBox.Show("Something went wrong, please ask for help in the discord!", "Error!", MessageBoxButtons.OK);
-                    break;
-            }
-        }
-
         private void setLevelButtons(int chapterNum)
         {
-            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagMain"))
+            /*foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagMain"))
                 button.Visible = false;
             foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagCh" + chapterNum))
                 button.Visible = true;
-            btnBack.Enabled = true;
-        }
-
-        private void btnBack_Click(object sender, EventArgs e)
-        {
-            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>())
-                button.Visible = false;
-            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagMain"))
-                button.Visible = true;
-            btnBack.Enabled = false;
+            
+             enable again when new level selector has been implement with the proper prefix
+             */
         }
 
         private void btnReloadSave_Click(object sender, EventArgs e)
@@ -199,30 +161,6 @@ namespace QubeTrainerUI
         private void btnVaultSave_Click(object sender, EventArgs e)
         {
             trainer.loadVaultSave();
-        }
-
-        private void toggleDarkMode()
-        {
-            if (this.BackColor == Color.WhiteSmoke)
-            {
-                btnDarkMode.Text = "Light Mode";
-                setAllForegroundColors(Color.WhiteSmoke);
-                this.BackColor = Color.FromArgb(64, 64, 64);
-            }
-            else
-            {
-                btnDarkMode.Text = "Dark Mode";
-                setAllForegroundColors(Color.Black);
-                this.BackColor = Color.WhiteSmoke;
-            }
-        }
-
-        public void setAllForegroundColors(Color color)
-        {
-            foreach (var label in this.Controls.OfType<Label>())
-            {
-                label.ForeColor = color;
-            }
         }
 
         #region listeners for number fields: read new value from dialog and write it to memory
@@ -297,11 +235,6 @@ namespace QubeTrainerUI
             trainer.lockSZ();
         }
 
-        private void btnDarkMode_Click(object sender, EventArgs e)
-        {
-            toggleDarkMode();
-        }
-
         private void btnMoonjump_Click(object sender, EventArgs e)
         {
             trainer.toggleMoonjump();
@@ -357,5 +290,378 @@ namespace QubeTrainerUI
             trainer.toggleArmsVisible();
         }
         #endregion
+        
+        private void btnClose_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+        private void btnMinimize_Click(object sender, EventArgs e)
+        {
+            this.WindowState = FormWindowState.Minimized;
+        }
+        private void btnConnect_MouseDown(object sender, MouseEventArgs e)
+        {
+            btnConnect.Size = new Size(132, 115);
+            btnConnect.Location = new Point(51, 27);
+        }
+        private void btnConnect_MouseUp(object sender, MouseEventArgs e)
+        {
+            btnConnect.Size = new Size(138, 121);
+            btnConnect.Location = new Point(48, 24);
+        }
+        private void btnConnect_MouseEnter(object sender, EventArgs e)
+        {
+            btnConnect.Size = new Size(142, 125);
+            btnConnect.Location = new Point(46, 22);
+        }
+        private void btnConnect_MouseLeave(object sender, EventArgs e)
+        {
+            btnConnect.Size = new Size(138, 121);
+            btnConnect.Location = new Point(48, 24);
+        }
+        private void btnClose_MouseEnter(object sender, EventArgs e)
+        {
+            btnClose.BackColor = Color.FromArgb(62, 62, 62);
+        }
+        private void btnMinimize_MouseEnter(object sender, EventArgs e)
+        {
+            btnMinimize.BackColor = Color.FromArgb(62, 62, 62);
+        }
+        private void btnClose_MouseLeave(object sender, EventArgs e)
+        {
+            btnClose.BackColor = Color.FromArgb(52, 52, 52);
+        }
+        private void btnMinimize_MouseLeave(object sender, EventArgs e)
+        {
+            btnMinimize.BackColor = Color.FromArgb(52, 52, 52);
+        }
+
+        private void btnGithub_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start("https://github.com/daniel-noordzij/Qube2-Trainer");
+        }
+
+        private void btnDiscord_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start("https://discord.gg/Qb36QHf");
+        }
+
+        private void btnSrc_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start("https://www.speedrun.com/qube2");
+        }
+        private void linkButtonEnter(object sender, EventArgs e)
+        {
+            Button senderBtn = (Button)sender;
+            Size currentSize = senderBtn.Size;
+            Point currentLoc = senderBtn.Location;
+
+            senderBtn.Size = new Size(currentSize.Width + 4, currentSize.Height + 4);
+            senderBtn.Location = new Point(currentLoc.X - 2, currentLoc.Y - 2);
+        }
+        private void linkButtonLeave(object sender, EventArgs e)
+        {
+            Button senderBtn = (Button)sender;
+            Size currentSize = senderBtn.Size;
+            Point currentLoc = senderBtn.Location;
+
+            senderBtn.Size = new Size(currentSize.Width - 4, currentSize.Height - 4);
+            senderBtn.Location = new Point(currentLoc.X + 2, currentLoc.Y + 2);
+        }
+
+        private void pnlSettingsSide_MouseLeave(object sender, EventArgs e)
+        {
+            if (currentTab != 4)
+            {
+                pnlSettingsSide.BackColor = Color.FromArgb(67, 67, 67);
+                pnlSettingsB.BackColor = Color.FromArgb(114, 114, 114);
+            }
+        }
+
+        private void pnlSettingsSide_MouseEnter(object sender, EventArgs e)
+        {
+            pnlSettingsSide.BackColor = Color.FromArgb(229, 148, 77);
+            pnlSettingsB.BackColor = Color.FromArgb(239, 239, 239);
+        }
+
+        private void pnlTrainerSide_MouseLeave(object sender, EventArgs e)
+        {
+            if (currentTab != 1)
+            {
+                pnlTrainerSide.BackColor = Color.FromArgb(67, 67, 67);
+                pnlTrainerB.BackColor = Color.FromArgb(114, 114, 114);
+            }
+        }
+
+        private void pnlTrainerSide_MouseEnter(object sender, EventArgs e)
+        {
+            pnlTrainerSide.BackColor = Color.FromArgb(229, 148, 77);
+            pnlTrainerB.BackColor = Color.FromArgb(239, 239, 239);
+        }
+
+        private void pnlLevelsSide_MouseLeave(object sender, EventArgs e)
+        {
+            if (currentTab != 2)
+            {
+                pnlLevelsSide.BackColor = Color.FromArgb(67, 67, 67);
+                pnlLevelsB.BackColor = Color.FromArgb(114, 114, 114);
+            }
+        }
+
+        private void pnlLevelsSide_MouseEnter(object sender, EventArgs e)
+        {
+            pnlLevelsSide.BackColor = Color.FromArgb(229, 148, 77);
+            pnlLevelsB.BackColor = Color.FromArgb(239, 239, 239);
+        }
+
+        private void pnlInfoSide_MouseLeave(object sender, EventArgs e)
+        {
+            if (currentTab != 3)
+            {
+                pnlInfoSide.BackColor = Color.FromArgb(67, 67, 67);
+                pnlInfoB.BackColor = Color.FromArgb(114, 114, 114);
+            }
+        }
+
+        private void pnlInfoSide_MouseEnter(object sender, EventArgs e)
+        {
+            pnlInfoSide.BackColor = Color.FromArgb(229, 148, 77);
+            pnlInfoB.BackColor = Color.FromArgb(239, 239, 239);
+        }
+
+        private void packClickMain(object sender, EventArgs e)
+        {
+            pnlBackToPacks.Visible = true;
+            pnlPacks.Visible = false;
+            pnlMainLevels.Visible = true;
+        }
+
+        private void packClickLost(object sender, EventArgs e)
+        {
+            pnlBackToPacks.Visible = true;
+            pnlPacks.Visible = false;
+            pnlLostorbit.Visible = true;
+        }
+
+        private void packClickAfter(object sender, EventArgs e)
+        {
+            pnlBackToPacks.Visible = true;
+            pnlPacks.Visible = false;
+            pnlAftermath.Visible = true;
+        }
+
+        private void backToPacks(object sender, EventArgs e)
+        {
+            foreach (var panel in pnlLevels.Controls.OfType<Panel>().Where(pnl => (string)pnl.Tag == "tagAllPacks"))
+                panel.Visible = false;
+            pnlBackToPacks.Visible = false;
+            pnlPacks.Visible = true;
+        }
+
+        private void chapterClick(object sender, EventArgs e)
+        {
+            Type senderType = sender.GetType();
+            string chapterNum;
+
+            if (senderType.Equals(typeof(Panel)))
+            {
+                chapterNum = Regex.Replace((sender as Panel).Name, @"[^\d]", "");
+            } else
+            {
+                chapterNum = Regex.Replace((sender as Label).Name, @"[^\d]", "");
+            }
+
+            if (currentChapterTab == chapterNum)
+                return;
+
+            foreach (var panel in pnlMainLevels.Controls.OfType<Panel>().Where(pnl => pnl.Name.Contains("pnlChapter")))
+            {
+
+                if (panel.Name.Contains("B"))
+                {
+                    panel.BackColor = Color.FromArgb(114, 114, 114);
+                }
+                else
+                {
+                    panel.BackColor = Color.FromArgb(67, 67, 67);
+                }
+
+                string pnlNum = Regex.Replace(panel.Name, @"[^\d]", "");
+                if (pnlNum != chapterNum)
+                {
+                    continue;
+                }
+
+                if (panel.Name.Contains("B"))
+                {
+                    panel.BackColor = Color.FromArgb(239, 239, 239);
+                }
+                else
+                {
+                    panel.BackColor = Color.FromArgb(229, 148, 77);
+                }
+
+                foreach (var panel2 in pnlMainLevels.Controls.OfType<Panel>().Where(pnl => pnl.Name.Contains("pnlMainCh")))
+                {
+                    string pnl2Num = Regex.Replace(panel2.Name, @"[^\d]", "");
+
+                    if (pnl2Num != chapterNum)
+                    {
+                        panel2.Visible = false;
+                    } else
+                    {
+                        panel2.Visible = true;
+                    }
+                }
+            }
+            currentChapterTab = chapterNum;
+        }
+
+        private void levelClick(object sender, EventArgs e)
+        {
+            Type senderType = sender.GetType();
+            string chapterNum = "", chapterName = "";
+
+            if (senderType.Equals(typeof(Panel)))
+            {
+                foreach (var label in (sender as Panel).Controls.OfType<Label>().Where(lbl => lbl.Name.Contains(chapterNum)))
+                {
+                    chapterName = label.Text;
+                }
+
+                chapterNum = Regex.Replace((sender as Panel).Name, @"[^\d]", "");
+            }
+            else
+            {
+                chapterNum = Regex.Replace((sender as Label).Name, @"[^\d]", "");
+                chapterName = (sender as Label).Text;
+            }
+
+            lblSelectedChapter.Text = chapterName;
+
+            pnlMainPreview.BackgroundImage = Image.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "icons/Preview/" + chapterNum + ".jpg"));
+            pnlMainPreview.Visible = true;
+            selectedLevel = chapterName;
+            pnlApplyLvl.Visible = true;
+            GC.Collect();
+        }
+
+        private void pnlApplyLvl_Click(object sender, EventArgs e)
+        {
+            /*trainer.setSave(selectedLevel);*/
+            Console.WriteLine(selectedLevel);
+        }
+
+        private void tabChangeClick(object sender, EventArgs e)
+        {
+            foreach (var panel in pnlSide.Controls.OfType<Panel>().Where(pnl => (string)pnl.Tag == "tagSidePanel"))
+                panel.BackColor = Color.FromArgb(67, 67, 67);
+            foreach (var panel in pnlSide.Controls.OfType<Panel>().Where(pnl => (string)pnl.Tag == "tagSidePanelB"))
+                panel.BackColor = Color.FromArgb(114, 114, 114);
+
+            Type senderType = sender.GetType();
+
+            if (senderType.Equals(typeof(Panel)))
+            {
+                if ((sender as Panel).Name.Contains("Trainer"))
+                {
+                    if (currentTab != 1)
+                    {
+                        tabChange(1);
+                    }
+                }
+                else if ((sender as Panel).Name.Contains("Levels"))
+                {
+                    if (currentTab != 2)
+                    {
+                        tabChange(2);
+                    }
+                }
+                else if ((sender as Panel).Name.Contains("Info"))
+                {
+                    if (currentTab != 3)
+                    {
+                        tabChange(3);
+                    }
+                }
+                else if ((sender as Panel).Name.Contains("Settings"))
+                {
+                    if (currentTab != 4)
+                    {
+                        tabChange(4);
+                    }
+                }
+            }
+            else
+            {
+                if ((sender as Label).Name.Contains("Trainer"))
+                {
+                    if (currentTab != 1)
+                    {
+                        tabChange(1);
+                    }
+                }
+                else if ((sender as Label).Name.Contains("Levels"))
+                {
+                    if (currentTab != 2)
+                    {
+                        tabChange(2);
+                    }
+                }
+                else if ((sender as Label).Name.Contains("Info"))
+                {
+                    if (currentTab != 3)
+                    {
+                        tabChange(3);
+                    }
+                }
+                else if ((sender as Label).Name.Contains("Settings"))
+                {
+                    if (currentTab != 4)
+                    {
+                        tabChange(4);
+                    }
+                }
+            }
+        }
+
+        private void tabChange(int newTabNum)
+        {
+            switch(newTabNum)
+            {
+                case 1:
+                    currentTab = 1;
+                    pnlTrainerSide.BackColor = Color.FromArgb(229, 148, 77);
+                    pnlTrainerB.BackColor = Color.FromArgb(239, 239, 239);
+                    foreach (var panel in Controls.OfType<Panel>().Where(pnl => (string)pnl.Tag == "tagMainPnls"))
+                        panel.Visible = false;
+                    pnlTrainer.Visible = true;
+                    break;
+                case 2:
+                    currentTab = 2;
+                    pnlLevelsSide.BackColor = Color.FromArgb(229, 148, 77);
+                    pnlLevelsB.BackColor = Color.FromArgb(239, 239, 239);
+                    foreach (var panel in Controls.OfType<Panel>().Where(pnl => (string)pnl.Tag == "tagMainPnls"))
+                        panel.Visible = false;
+                    pnlLevels.Visible = true;
+                    break;
+                case 3:
+                    currentTab = 3;
+                    pnlInfoSide.BackColor = Color.FromArgb(229, 148, 77);
+                    pnlInfoB.BackColor = Color.FromArgb(239, 239, 239);
+                    foreach (var panel in Controls.OfType<Panel>().Where(pnl => (string)pnl.Tag == "tagMainPnls"))
+                        panel.Visible = false;
+                    pnlInfo.Visible = true;
+                    break;
+                case 4:
+                    currentTab = 4;
+                    pnlSettingsSide.BackColor = Color.FromArgb(229, 148, 77);
+                    pnlSettingsB.BackColor = Color.FromArgb(239, 239, 239);
+                    foreach (var panel in Controls.OfType<Panel>().Where(pnl => (string)pnl.Tag == "tagMainPnls"))
+                        panel.Visible = false;
+                    pnlSettings.Visible = true;
+                    break;
+            }
+        }
     }
 }

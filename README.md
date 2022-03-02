@@ -1,8 +1,10 @@
 # Qube2 Trainer
 
-This trainer is meant to help Speedrunners practice their speed in sections by replaying them using the teleport function, but can be used by everyone who wants to mess around and look into the Out of Bounds in Q.U.B.E. 2.
+This is a trainer meant for speedrunners of Q.U.B.E. 2 to for example practice sections more easily, get to spots faster or glitch-hunt more efficiently.
+But it can of course be used by anyone to simply explore the game more with the cheats such as Moonjump, Fly Mode and position customizer. 
 
-![screenshot of trainer](https://github.com/MonsterDruide1/Qube2-Trainer/blob/master/Screenshot.jpg)
+![screenshot of trainer](https://github.com/daniel-noordzij/Qube2-Trainer/blob/2.0/Screenshot1.jpg)
+![screenshot of trainer](https://github.com/daniel-noordzij/Qube2-Trainer/blob/2.0/Screenshot2.jpg)
 
 ### How does it work?
 

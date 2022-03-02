@@ -5,12 +5,15 @@ using System.Runtime.InteropServices;
 using System.IO;
 using System.Media;
 using System.Timers;
+using System.Drawing;
+using System.Windows.Input;
+using System.Net;
 
 using Virtua_Cop_2Trainer;
 
 namespace QubeTrainerNamespace
 {
-    class QubeTrainer
+    class QubeTrainerClass
     {
 
         VAMemory vam;
@@ -32,18 +35,20 @@ namespace QubeTrainerNamespace
 
         int turnValue;
 
-        bool lockedX, lockedY, lockedZ, lockedSX, lockedSY, lockedSZ, moonjump, singleJump, lowGravity, superSpeed, flyMode, armsHidden = false;
+        bool lockedX, lockedY, lockedZ, lockedSX, lockedSY, lockedSZ, moonjump, singleJump, lowGravity, superSpeed, flyMode, armsHidden;
 
-        string[] fileNames = { "MainSaveGame.sav", "MainStatsSaveGame.sav", "MainUnlockedLevels.sav" };
+        string fileName = "MainSaveGame.sav";
         string sourceVS = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\VaultSave");
         string source;
         string target = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QUBE\\Saved\\SaveGames\\");
 
-        public bool connected = false;
+        public bool connected = false, autoDisconnectToggle = true, recheckPtrToggle = true;
 
         private static Timer aInterval;
+        private static Timer clearDelay;
 
         private int checkCounter = 0;
+        private string currentVersion = "2.0.0";
 
         List<KeyboardHook.VK> currentKeys = new List<KeyboardHook.VK>();
 
@@ -51,7 +56,7 @@ namespace QubeTrainerNamespace
         public float hashOfValues;
         QubeTrainerUI.Form1 ui;
 
-        public QubeTrainer(QubeTrainerUI.Form1 ui)
+        public QubeTrainerClass(QubeTrainerUI.Form1 ui)
         {
             this.ui = ui;
             KeyboardHook.CreateHook(KeyReader);
@@ -59,7 +64,7 @@ namespace QubeTrainerNamespace
 
         public void KeyReader(IntPtr wParam, IntPtr lParam)
         {
-            if (connected && wParam.ToInt32() == 0x100) //WM_KEYDOWN
+            if (connected && wParam.ToInt32() == 0x100/* && !ui.hotkeyClicked --  for when custom hotkeys are implemented again */) //WM_KEYDOWN
             {
                 KeyboardHook.VK key = (KeyboardHook.VK)Marshal.ReadInt32(lParam);
                 switch (key) //Global Hotkeys
@@ -106,7 +111,7 @@ namespace QubeTrainerNamespace
                         break;
                 }
             }
-            else if (connected && wParam.ToInt32() == 0x101) //WM_KEYUP
+            else if (connected && wParam.ToInt32() == 0x101/* && !ui.hotkeyClicked --  for when custom hotkeys are implemented again */) //WM_KEYUP
             {
                 KeyboardHook.VK key = (KeyboardHook.VK)Marshal.ReadInt32(lParam);
                 switch (key) //Global Hotkeys
@@ -116,18 +121,25 @@ namespace QubeTrainerNamespace
                         break;
                 }
             }
+
+            /*if (ui.hotkeyClicked) --  for when custom hotkeys are implemented again
+            {
+                if (wParam.ToInt32() == 0x100)
+                {
+                    KeyboardHook.VK key = (KeyboardHook.VK)Marshal.ReadInt32(lParam);
+                    string keyCode = key.ToString().Replace("VK_", "");
+                    ui.updateHotkeyText(keyCode);
+                }
+            }*/
         }
 
         public void setSave(String name)
         {
             source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + name);
-            for (int i = 0; i < fileNames.Length; i++)
-            {
-                string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
-                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+            string sourceFile = System.IO.Path.Combine(source, fileName);
+            string targetFile = System.IO.Path.Combine(target, fileName);
 
-                System.IO.File.Copy(sourceFile, targetFile, true);
-            }
+            System.IO.File.Copy(sourceFile, targetFile, true);
 
             if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
             {
@@ -143,7 +155,6 @@ namespace QubeTrainerNamespace
                     sw.WriteLine(name);
                 }
             }
-
             SystemSounds.Beep.Play();
         }
 
@@ -157,13 +168,10 @@ namespace QubeTrainerNamespace
                     if ((s = sr.ReadLine()) != null)
                     {
                         source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + s);
-                        for (int i = 0; i < fileNames.Length; i++)
-                        {
-                            string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
-                            string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+                        string sourceFile = System.IO.Path.Combine(source, fileName);
+                        string targetFile = System.IO.Path.Combine(target, fileName);
 
-                            System.IO.File.Copy(sourceFile, targetFile, true);
-                        }
+                        File.Copy(sourceFile, targetFile, true);
                     }
                     else
                     {
@@ -179,27 +187,17 @@ namespace QubeTrainerNamespace
 
         public void loadVaultSave()
         {
-            for (int i = 0; i < fileNames.Length; i++)
-            {
-                string sourceFile = System.IO.Path.Combine(sourceVS, fileNames[i]);
-                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+            string sourceFile = System.IO.Path.Combine(sourceVS, fileName);
+            string targetFile = System.IO.Path.Combine(target, fileName);
 
-                System.IO.File.Copy(sourceFile, targetFile, true);
-            }
+            System.IO.File.Copy(sourceFile, targetFile, true);
         }
 
         public void toggleArmsVisible()
         {
             armsHidden = !armsHidden;
-            if (armsHidden)
-            {
-                vam.WriteFloat(BaseArmsRotY, -180);
-            }
-            if (!armsHidden)
-            {
-                vam.WriteFloat(BaseArmsRotY, 0);
-            }
-            ui.SetText(ui.btnHideArms,armsHidden ? "Hide Arms (On)" : "Hide Arms (Off)");
+            vam.WriteFloat(BaseArmsRotY, armsHidden ? -180 : 0);
+            ui.pnlHideArmsF.BackColor = armsHidden ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0 ,0, 0);
         }
 
         public void toggleFlyMode()
@@ -208,107 +206,67 @@ namespace QubeTrainerNamespace
             valLockY = valY;
             valLockX = valX;
             valLockZ = valZ;
-
-            ui.SetText(ui.btnFlyMode,flyMode ? "Fly Mode (On)" : "Fly Mode (Off)");
+            ui.pnlFlyModeF.BackColor = flyMode ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockX()
         {
+            lockedX = !lockedX;
             if (lockedX)
-            {
-                lockedX = false;
-                ui.SetText(ui.SLock1,"Lock");
-            }
-            else
             {
                 valLockX = valX;
                 valLockSX = 0f;
-
-                lockedX = true;
-                ui.SetText(ui.SLock1,"Unlock");
             }
+            ui.SLock1Check.BackColor = lockedX ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockY()
         {
+            lockedY = !lockedY;
             if (lockedY)
-            {
-                lockedY = false;
-                ui.SetText(ui.SLock2,"Lock");
-            }
-            else
             {
                 valLockY = valY;
                 valLockSY = 0f;
-
-                lockedY = true;
-                ui.SetText(ui.SLock2,"Unlock");
             }
+            ui.SLock2Check.BackColor = lockedY ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockZ()
         {
+            lockedZ = !lockedZ;
             if (lockedZ)
-            {
-                lockedZ = false;
-                ui.SetText(ui.SLock3,"Lock");
-            }
-            else
             {
                 valLockZ = valZ;
                 valLockSZ = 0f;
-
-                lockedZ = true;
-                ui.SetText(ui.SLock3,"Unlock");
             }
+            ui.SLock3Check.BackColor = lockedZ ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockSX()
         {
+            lockedSX = !lockedSX;
             if (lockedSX)
-            {
-                lockedSX = false;
-                ui.SetText(ui.SLock4,"Lock");
-            }
-            else
-            {
                 valLockSX = valSX;
 
-                lockedSX = true;
-                ui.SetText(ui.SLock4,"Unlock");
-            }
+            ui.SLock4Check.BackColor = lockedSX ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockSY()
         {
+            lockedSY = !lockedSY;
             if (lockedSY)
-            {
-                lockedSY = false;
-                ui.SetText(ui.SLock5,"Lock");
-            }
-            else
-            {
                 valLockSY = valSY;
 
-                lockedSY = true;
-                ui.SetText(ui.SLock5,"Unlock");
-            }
+            ui.SLock5Check.BackColor = lockedSY ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockSZ()
         {
+            lockedSZ = !lockedSZ;
             if (lockedSZ)
-            {
-                lockedSZ = false;
-                ui.SetText(ui.SLock6,"Lock");
-            }
-            else
-            {
                 valLockSZ = valSZ;
 
-                lockedSZ = true;
-                ui.SetText(ui.SLock6,"Unlock");
-            }
+            ui.SLock6Check.BackColor = lockedSZ ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void teleportToMarker()
@@ -340,57 +298,35 @@ namespace QubeTrainerNamespace
 
         public void toggleLowGravity()
         {
-            if (lowGravity)
-            {
-                ui.SetText(ui.btnLowGravity,"Low Gravity (Off)");
-                lowGravity = false;
-            }
-            else
-            {
-                ui.SetText(ui.btnLowGravity,"Low Gravity (On)");
-                lowGravity = true;
-            }
+            lowGravity = !lowGravity;
+            ui.pnlLowGravityF.BackColor = lowGravity ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void toggleSuperspeed()
         {
+            superSpeed = !superSpeed;
             if (superSpeed)
             {
-                ui.SetText(ui.btnSuperSpeed,"Super Speed (Off)");
-                superSpeed = false;
-
                 vam.WriteFloat(BaseSX, 0f);
                 vam.WriteFloat(BaseSZ, 0f);
             }
-            else
-            {
-                ui.SetText(ui.btnSuperSpeed,"Super Speed (On)");
-                superSpeed = true;
-            }
+            ui.pnlSuperSpeedF.BackColor = superSpeed ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void toggleMoonjump()
         {
-            if (moonjump)
-            {
-                ui.SetText(ui.btnMoonjump,"Moonjump (Off)");
-                moonjump = false;
-            }
-            else
-            {
-                ui.SetText(ui.btnMoonjump,"Moonjump (On)");
-                moonjump = true;
-            }
+            moonjump = !moonjump;
+            ui.pnlMoonjumpF.BackColor = moonjump ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void connect()
         {
             processes = Process.GetProcessesByName("QUBE-Win64-Shipping");
+            ui.btnConnect.BackgroundImage = Image.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "icons/stop_btn256.png"));
 
             if (processes.Length > 0)
             {
-                ui.SetText(ui.btnConnect,"Disconnect");
-                ui.setAllEnabled(true);
+                /*ui.setAllEnabled(true);*/
 
                 GameProcess = processes[0];
                 vam = new VAMemory("QUBE-Win64-Shipping");
@@ -402,6 +338,7 @@ namespace QubeTrainerNamespace
             }
             else
             {
+                ui.btnConnect.BackgroundImage = Image.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "icons/play_btn256.png"));
                 ui.showMessageBox("Could not find an open QUBE 2 process!", "Error Finding Process");
             }
         }
@@ -429,16 +366,23 @@ namespace QubeTrainerNamespace
 
         public void disconnect()
         {
-            ui.SetText(ui.btnConnect,"Connect");
+            ui.btnConnect.BackgroundImage = Image.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "icons/play_btn256.png"));
             ui.setAllEnabled(false);
 
             aInterval.Stop();
             aInterval.Dispose();
-            for (int i = 0; i < 10; i++)
-            {
-                ui.clearAll();
-            }
+                
+            clearDelay = new System.Timers.Timer(40);
+            clearDelay.Elapsed += clearEvent;
+            clearDelay.AutoReset = false;
+            clearDelay.Enabled = true;
+
             connected = false;
+        }
+
+        private void clearEvent(Object source, ElapsedEventArgs e)
+        {
+            ui.clearAll();
         }
 
         private void SetInterval()
@@ -454,6 +398,15 @@ namespace QubeTrainerNamespace
             if (!connected)
             {
                 return;
+            }
+
+            if (autoDisconnectToggle)
+            {
+                processes = Process.GetProcessesByName("QUBE-Win64-Shipping");
+                if (processes.Length <= 0)
+                {
+                    disconnect();
+                }
             }
 
             valX = vam.ReadFloat(BaseX);
@@ -627,18 +580,21 @@ namespace QubeTrainerNamespace
                 vam.WriteFloat(BaseSY, -400);
             }
 
-            int newHash = calculateHashOfValues();
-            if (hashOfValues == newHash)
+            if (recheckPtrToggle)
             {
-                checkCounter++;
-            }
-            hashOfValues = newHash;
+                int newHash = calculateHashOfValues();
+                if (hashOfValues == newHash)
+                {
+                    checkCounter++;
+                }
+                hashOfValues = newHash;
 
-            if (checkCounter >= 150)
-            {
-                checkCounter = 0;
+                if (checkCounter >= 150)
+                {
+                    checkCounter = 0;
 
-                setupAddresses();
+                    setupAddresses();
+                }
             }
         }
 
@@ -662,6 +618,20 @@ namespace QubeTrainerNamespace
         public void writeFloat(IntPtr address, float newValue)
         {
             vam.WriteFloat(address, newValue);
+        }
+
+        public void checkNewUpdate()
+        {
+            WebRequest wr = WebRequest.Create(new Uri("https://raw.githubusercontent.com/LagoLunatic/wwrando/master/version.txt"));
+            WebResponse ws = wr.GetResponse();
+            StreamReader sr = new StreamReader(ws.GetResponseStream());
+
+            string newVersion = sr.ReadToEnd();
+
+            if (!currentVersion.Contains(newVersion)) //15, 13
+            {
+                ui.lblNewUpdate.Visible = true;
+            }
         }
     }
 }

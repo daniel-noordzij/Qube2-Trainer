@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using MouseEventArgs = System.Windows.Forms.MouseEventArgs;
 
 using QubeTrainerNamespace;
+using QubeTrainer;
 
 namespace QubeTrainerUI
 {
@@ -21,9 +22,6 @@ namespace QubeTrainerUI
         private string currentChapterTab = "0";
         private string selectedLevel = "0";
 
-        public bool hotkeyClicked = false;
-        public Label lastHotkey;
-
         public Form1()
         {
             InitializeComponent();
@@ -34,6 +32,7 @@ namespace QubeTrainerUI
             trainer = new QubeTrainerClass(this);
             trainer.checkNewUpdate();
         }
+
         private void pnlTopBar_MouseDown(object sender, MouseEventArgs e)
         {
             this.Cursor = Cursors.SizeAll;
@@ -73,17 +72,18 @@ namespace QubeTrainerUI
             SetText(valSpeedZ, "");
         }
 
-        public void setAllEnabled(bool enabled)
-        {
-            foreach (var button in pnlLevels.Controls.OfType<Button>())
-            {
-                button.Enabled = enabled;
-            }
-        }
-
         public void showMessageBox(String message, String title)
         {
-            MessageBox.Show(message, title, MessageBoxButtons.OK);
+            trainer.lockAllFkeys = true;
+
+            this.TopMost = true;
+            DialogResult result = MessageBox.Show(message, title, MessageBoxButtons.OK/*, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1, MessageBoxOptions.ServiceNotification*/);
+            this.TopMost = false;
+
+            if (result == DialogResult.OK)
+            {
+                trainer.lockAllFkeys = false;
+            }
         }
 
         public void updateAllValues()
@@ -137,15 +137,22 @@ namespace QubeTrainerUI
             return 0;
         }
 
-        private void setLevelButtons(int chapterNum)
+        private string[] showHotkeyDialog(string oldFKey, string oldHKey)
         {
-            /*foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagMain"))
-                button.Visible = false;
-            foreach (var button in flowLayoutPanel1.Controls.OfType<Button>().Where(btn => (string)btn.Tag == "tagCh" + chapterNum))
-                button.Visible = true;
-            
-             enable again when new level selector has been implement with the proper prefix
-             */
+            using (HotkeyForm hotkeyForm = new HotkeyForm(oldFKey))
+            {
+                DialogResult dr = hotkeyForm.ShowDialog(this);
+                if (dr == DialogResult.OK)
+                {
+                    return hotkeyForm.getNewHK();
+                }
+                else if (dr == DialogResult.Cancel)
+                {
+                    return null;
+                }
+                hotkeyForm.Close();
+            }
+            return null;
         }
 
         private void btnReloadSave_Click(object sender, EventArgs e)
@@ -164,29 +171,6 @@ namespace QubeTrainerUI
         }
 
         #region listeners for number fields: read new value from dialog and write it to memory
-        private void valMarkX_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (trainer.connected)
-            {
-                trainer.writeFloat(trainer.BaseMX, showNumberDialog(trainer.valMX));
-            }
-        }
-
-        private void valMarkY_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (trainer.connected)
-            {
-                trainer.writeFloat(trainer.BaseMY, showNumberDialog(trainer.valMY));
-            }
-        }
-
-        private void valMarkZ_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (trainer.connected)
-            {
-                trainer.writeFloat(trainer.BaseMZ, showNumberDialog(trainer.valMZ));
-            }
-        }
 
         private void valPosX_MouseDown(object sender, MouseEventArgs e)
         {
@@ -438,16 +422,16 @@ namespace QubeTrainerUI
 
         private void packClickLost(object sender, EventArgs e)
         {
-            pnlBackToPacks.Visible = true;
-            pnlPacks.Visible = false;
-            pnlLostorbit.Visible = true;
+            /*pnlBackToPacks.Visible = true;
+            pnlPacks.Visible = false;                 ----- Enable when added
+            pnlLostorbit.Visible = true;*/
         }
 
         private void packClickAfter(object sender, EventArgs e)
         {
-            pnlBackToPacks.Visible = true;
-            pnlPacks.Visible = false;
-            pnlAftermath.Visible = true;
+            /*pnlBackToPacks.Visible = true;
+            pnlPacks.Visible = false;                 ----- Enable when added
+            pnlAftermath.Visible = true;*/
         }
 
         private void backToPacks(object sender, EventArgs e)
@@ -474,7 +458,7 @@ namespace QubeTrainerUI
             if (currentChapterTab == chapterNum)
                 return;
 
-            foreach (var panel in pnlMainLevels.Controls.OfType<Panel>().Where(pnl => pnl.Name.Contains("pnlChapter")))
+            foreach (var panel in pnlChaptersMain.Controls.OfType<Panel>().Where(pnl => pnl.Name.Contains("pnlChapter")))
             {
 
                 if (panel.Name.Contains("B"))
@@ -519,115 +503,66 @@ namespace QubeTrainerUI
 
         private void levelClick(object sender, EventArgs e)
         {
-            Type senderType = sender.GetType();
             string chapterNum = "", chapterName = "";
 
-            if (senderType.Equals(typeof(Panel)))
-            {
-                foreach (var label in (sender as Panel).Controls.OfType<Label>().Where(lbl => lbl.Name.Contains(chapterNum)))
-                {
-                    chapterName = label.Text;
-                }
+            chapterNum = Regex.Replace((sender as Label).Name, @"[^\d]", "");
+            chapterName = (sender as Label).Text;
 
-                chapterNum = Regex.Replace((sender as Panel).Name, @"[^\d]", "");
-            }
-            else
-            {
-                chapterNum = Regex.Replace((sender as Label).Name, @"[^\d]", "");
-                chapterName = (sender as Label).Text;
-            }
-
-            lblSelectedChapter.Text = chapterName;
+            lblSelectedChapter.Text = chapterName.Trim();
 
             pnlMainPreview.BackgroundImage = Image.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "icons/Preview/" + chapterNum + ".jpg"));
             pnlMainPreview.Visible = true;
             selectedLevel = chapterName;
             pnlApplyLvl.Visible = true;
+            lblLevelHK.Visible = true;
             GC.Collect();
         }
 
         private void pnlApplyLvl_Click(object sender, EventArgs e)
         {
-            /*trainer.setSave(selectedLevel);*/
-            Console.WriteLine(selectedLevel);
+            trainer.setSave(selectedLevel.Trim());
         }
 
         private void tabChangeClick(object sender, EventArgs e)
         {
-            foreach (var panel in pnlSide.Controls.OfType<Panel>().Where(pnl => (string)pnl.Tag == "tagSidePanel"))
-                panel.BackColor = Color.FromArgb(67, 67, 67);
-            foreach (var panel in pnlSide.Controls.OfType<Panel>().Where(pnl => (string)pnl.Tag == "tagSidePanelB"))
-                panel.BackColor = Color.FromArgb(114, 114, 114);
-
-            Type senderType = sender.GetType();
-
-            if (senderType.Equals(typeof(Panel)))
+            if ((sender as Label).Name.Contains("Trainer"))
             {
-                if ((sender as Panel).Name.Contains("Trainer"))
+                if (currentTab != 1)
                 {
-                    if (currentTab != 1)
-                    {
-                        tabChange(1);
-                    }
-                }
-                else if ((sender as Panel).Name.Contains("Levels"))
-                {
-                    if (currentTab != 2)
-                    {
-                        tabChange(2);
-                    }
-                }
-                else if ((sender as Panel).Name.Contains("Info"))
-                {
-                    if (currentTab != 3)
-                    {
-                        tabChange(3);
-                    }
-                }
-                else if ((sender as Panel).Name.Contains("Settings"))
-                {
-                    if (currentTab != 4)
-                    {
-                        tabChange(4);
-                    }
+                    tabChange(1);
                 }
             }
-            else
+            else if ((sender as Label).Name.Contains("Levels"))
             {
-                if ((sender as Label).Name.Contains("Trainer"))
+                if (currentTab != 2)
                 {
-                    if (currentTab != 1)
-                    {
-                        tabChange(1);
-                    }
+                    tabChange(2);
                 }
-                else if ((sender as Label).Name.Contains("Levels"))
+            }
+            else if ((sender as Label).Name.Contains("Info"))
+            {
+                if (currentTab != 3)
                 {
-                    if (currentTab != 2)
-                    {
-                        tabChange(2);
-                    }
+                    tabChange(3);
                 }
-                else if ((sender as Label).Name.Contains("Info"))
+            }
+            else if ((sender as Label).Name.Contains("Settings"))
+            {
+                if (currentTab != 4)
                 {
-                    if (currentTab != 3)
-                    {
-                        tabChange(3);
-                    }
-                }
-                else if ((sender as Label).Name.Contains("Settings"))
-                {
-                    if (currentTab != 4)
-                    {
-                        tabChange(4);
-                    }
+                    tabChange(4);
                 }
             }
         }
 
         private void tabChange(int newTabNum)
         {
-            switch(newTabNum)
+            foreach (var panel in pnlSide.Controls.OfType<Panel>().Where(pnl => (string)pnl.Tag == "tagSidePanel"))
+                panel.BackColor = Color.FromArgb(67, 67, 67);
+            foreach (var panel in pnlSide.Controls.OfType<Panel>().Where(pnl => (string)pnl.Tag == "tagSidePanelB"))
+                panel.BackColor = Color.FromArgb(114, 114, 114);
+
+            switch (newTabNum)
             {
                 case 1:
                     currentTab = 1;
@@ -662,6 +597,166 @@ namespace QubeTrainerUI
                     pnlSettings.Visible = true;
                     break;
             }
+        }
+
+        private void lblFlySpeedDown_MouseClick(object sender, MouseEventArgs e)
+        {
+            trainer.changeFlySpeed(2);
+        }
+
+        private void lblFlySpeedUp_MouseClick(object sender, MouseEventArgs e)
+        {
+            trainer.changeFlySpeed(1);
+        }
+
+        private void valAngleX_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (trainer.connected)
+            {
+                float newVal = showNumberDialog(trainer.valAX);
+                trainer.writeFloat(trainer.BaseAX, newVal);
+            }
+        }
+
+        private void hotkeyButtonClick(object sender, EventArgs e)
+        {
+            string clickedKey = (sender as Label).Name.Substring(6);
+            string[] newHK = showHotkeyDialog(clickedKey, (sender as Label).Text);
+
+            if (newHK == null) return;
+
+            switch (clickedKey)
+            {
+                case "F1":
+                    trainer.f1Num = newHK[0];
+                    (sender as Label).Text = newHK[1];
+                    break;
+                case "F2":
+                    trainer.f2Num = newHK[0];
+                    (sender as Label).Text = newHK[1];
+                    break;
+                case "F3":
+                    trainer.f3Num = newHK[0];
+                    (sender as Label).Text = newHK[1];
+                    break;
+                case "F4":
+                    trainer.f4Num = newHK[0];
+                    (sender as Label).Text = newHK[1];
+                    break;
+                case "F5":
+                    trainer.f5Num = newHK[0];
+                    (sender as Label).Text = newHK[1];
+                    break;
+                case "F6":
+                    trainer.f6Num = newHK[0];
+                    (sender as Label).Text = newHK[1];
+                    break;
+                case "F7":
+                    trainer.f7Num = newHK[0];
+                    (sender as Label).Text = newHK[1];
+                    break;
+                case "F8":
+                    trainer.f8Num = newHK[0];
+                    (sender as Label).Text = newHK[1];
+                    break;
+                case "F9":
+                    trainer.f9Num = newHK[0];
+                    (sender as Label).Text = newHK[1];
+                    break;
+                case "F10":
+                    trainer.f10Num = newHK[0];
+                    (sender as Label).Text = newHK[1];
+                    break;
+                case "F12":
+                    trainer.f12Num = newHK[0];
+                    (sender as Label).Text = newHK[1];
+                    break;
+            }
+        }
+
+        private void lblSaveSettings_Click(object sender, EventArgs e)
+        {
+            trainer.SaveSettings();
+        }
+
+        private void ToggleAutoDisc(object sender, EventArgs e)
+        {
+            trainer.autoDisconnectToggle = !trainer.autoDisconnectToggle;
+            pnlAutoDiscF.BackColor = trainer.autoDisconnectToggle ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
+        }
+
+        private void ToggleRecheckPtr(object sender, EventArgs e)
+        {
+            trainer.recheckPtrToggle = !trainer.recheckPtrToggle;
+            pnlRecheckF.BackColor = trainer.recheckPtrToggle ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
+        }
+
+        private void lblLevelHK_Click(object sender, EventArgs e)
+        {
+            pnlFKeySelect.Visible = true;
+            pnlHKCancel.Visible = true;
+            pnlChaptersMain.Visible = false;
+
+            foreach (var panel2 in pnlMainLevels.Controls.OfType<Panel>().Where(pnl => pnl.Name.Contains("pnlMainCh")))
+            {
+                panel2.Visible = false;
+            }
+        }
+
+        private void setLevelToFKey(object sender, EventArgs e)
+        {
+            trainer.saveLevelSettings((sender as Label).Text.Trim(), selectedLevel.Trim());
+
+            CancelLevelHK();
+        }
+
+        private void CancelLevelHK()
+        {
+            pnlFKeySelect.Visible = false;
+            pnlHKCancel.Visible = false;
+            pnlChaptersMain.Visible = true;
+
+            switch (currentChapterTab)
+            {
+                case "1":
+                    pnlMainCh1.Visible = true;
+                    break;
+                case "2":
+                    pnlMainCh2.Visible = true;
+                    break;
+                case "3":
+                    pnlMainCh3.Visible = true;
+                    break;
+                case "4":
+                    pnlMainCh4.Visible = true;
+                    break;
+                case "5":
+                    pnlMainCh5.Visible = true;
+                    break;
+                case "6":
+                    pnlMainCh6.Visible = true;
+                    break;
+                case "7":
+                    pnlMainCh7.Visible = true;
+                    break;
+                case "8":
+                    pnlMainCh8.Visible = true;
+                    break;
+                case "9":
+                    pnlMainCh9.Visible = true;
+                    break;
+                case "10":
+                    pnlMainCh10.Visible = true;
+                    break;
+                case "11":
+                    pnlMainCh11.Visible = true;
+                    break;
+            }
+        }
+
+        private void lblHKCancel_Click(object sender, EventArgs e)
+        {
+            CancelLevelHK();
         }
     }
 }

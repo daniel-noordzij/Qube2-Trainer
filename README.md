@@ -3,8 +3,8 @@
 This is a trainer meant for speedrunners of Q.U.B.E. 2 to for example practice sections more easily, get to spots faster or glitch-hunt more efficiently.
 But it can of course be used by anyone to simply explore the game more with the cheats such as Moonjump, Fly Mode and position customizer. 
 
-![screenshot of trainer](https://github.com/daniel-noordzij/Qube2-Trainer/blob/2.0/Screenshot1.jpg)
-![screenshot of trainer](https://github.com/daniel-noordzij/Qube2-Trainer/blob/2.0/Screenshot2.jpg)
+![screenshot of trainer](https://github.com/daniel-noordzij/Qube2-Trainer/blob/master/Screenshot1.png)
+![screenshot of level selector](https://github.com/daniel-noordzij/Qube2-Trainer/blob/master/Screenshot2.png)
 
 ### How does it work?
 
@@ -47,3 +47,5 @@ F11 | RESERVED for fullscreen toggle
 F12 | Toggle arm visibility
 
 When Super Speed or Fly Mode is enabled, QUBE's in-game WASD-controls are disabled and the trainer controls the position instead. For Fly Mode, Space is used to go up and Left Shift to go down.
+
+![screenshot of trainer](https://github.com/daniel-noordzij/Qube2-Trainer/blob/master/Screenshot3.png)

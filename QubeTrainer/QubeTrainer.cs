@@ -5,12 +5,16 @@ using System.Runtime.InteropServices;
 using System.IO;
 using System.Media;
 using System.Timers;
+using System.Drawing;
+using System.Windows.Input;
+using System.Net;
+using System.Windows.Forms;
 
 using Virtua_Cop_2Trainer;
 
-namespace QubeTrainerNamespace
+namespace QubeTrainer
 {
-    class QubeTrainer
+    class QubeTrainerClass
     {
 
         VAMemory vam;
@@ -31,103 +35,366 @@ namespace QubeTrainerNamespace
         Int32[] valArmsRotYOff = { 0x58, 0x340, 0x10, 0x100, 0x170 };
 
         int turnValue;
+        int flyModeSpeed = 100;
 
-        bool lockedX, lockedY, lockedZ, lockedSX, lockedSY, lockedSZ, moonjump, singleJump, lowGravity, superSpeed, flyMode, armsHidden = false;
+        bool lockedX, lockedY, lockedZ, lockedSX, lockedSY, lockedSZ, moonjump, singleJump, lowGravity, superSpeed, flyMode, armsHidden;
 
-        string[] fileNames = { "MainSaveGame.sav", "MainStatsSaveGame.sav", "MainUnlockedLevels.sav" };
+        string fileName = "MainSaveGame.sav";
         string sourceVS = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\VaultSave");
         string source;
         string target = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "QUBE\\Saved\\SaveGames\\");
 
-        public bool connected = false;
+        public bool connected = false, autoDisconnectToggle = true, recheckPtrToggle = true, lockAllFkeys = false;
 
-        private static Timer aInterval;
+        private static System.Timers.Timer aInterval;
+        private static System.Timers.Timer clearDelay;
+        private static System.Timers.Timer appliedTimer;
 
         private int checkCounter = 0;
+        private string currentVersion = "2.0";
 
         List<KeyboardHook.VK> currentKeys = new List<KeyboardHook.VK>();
+        public string f1Num = "1", f2Num = "2", f3Num = "3", f4Num = "4", f5Num = "5", f6Num = "6", f7Num = "8", f8Num = "9", f9Num ="10", f10Num = "7", f12Num = "15";
 
         public float valX, valY, valZ, valMX, valMY, valMZ, valSX, valSY, valSZ, valAX, valAY, valLockX, valLockY, valLockZ, valLockSX, valLockSY, valLockSZ, valStoreX, valStoreY, valStoreZ;
         public float hashOfValues;
         QubeTrainerUI.Form1 ui;
 
-        public QubeTrainer(QubeTrainerUI.Form1 ui)
+        public QubeTrainerClass(QubeTrainerUI.Form1 ui)
         {
             this.ui = ui;
             KeyboardHook.CreateHook(KeyReader);
+            GetSettings();
+        }
+
+        public void GetSettings()
+        {
+            f1Num = Properties.Settings.Default.F1HK;
+            f2Num = Properties.Settings.Default.F2HK;
+            f3Num = Properties.Settings.Default.F3HK;
+            f4Num = Properties.Settings.Default.F4HK;
+            f5Num = Properties.Settings.Default.F5HK;
+            f6Num = Properties.Settings.Default.F6HK;
+            f7Num = Properties.Settings.Default.F7HK;
+            f8Num = Properties.Settings.Default.F8HK;
+            f9Num = Properties.Settings.Default.F9HK;
+            f10Num = Properties.Settings.Default.F10HK;
+            f12Num = Properties.Settings.Default.F12HK;
+            autoDisconnectToggle = Properties.Settings.Default.AutoDisc;
+            recheckPtrToggle = Properties.Settings.Default.PtrCheck;
+
+            ui.lblHotF1.Text = GetHKNameFromNum(Properties.Settings.Default.F1HK);
+            ui.lblHotF2.Text = GetHKNameFromNum(Properties.Settings.Default.F2HK);
+            ui.lblHotF3.Text = GetHKNameFromNum(Properties.Settings.Default.F3HK);
+            ui.lblHotF4.Text = GetHKNameFromNum(Properties.Settings.Default.F4HK);
+            ui.lblHotF5.Text = GetHKNameFromNum(Properties.Settings.Default.F5HK);
+            ui.lblHotF6.Text = GetHKNameFromNum(Properties.Settings.Default.F6HK);
+            ui.lblHotF7.Text = GetHKNameFromNum(Properties.Settings.Default.F7HK);
+            ui.lblHotF8.Text = GetHKNameFromNum(Properties.Settings.Default.F8HK);
+            ui.lblHotF9.Text = GetHKNameFromNum(Properties.Settings.Default.F9HK);
+            ui.lblHotF10.Text = GetHKNameFromNum(Properties.Settings.Default.F10HK);
+            ui.lblHotF12.Text = GetHKNameFromNum(Properties.Settings.Default.F12HK);
+
+            ui.lblHkLvlF1.Text = GetHKNameFromNum(Properties.Settings.Default.F1HK);
+            ui.lblHkLvlF2.Text = GetHKNameFromNum(Properties.Settings.Default.F2HK);
+            ui.lblHkLvlF3.Text = GetHKNameFromNum(Properties.Settings.Default.F3HK);
+            ui.lblHkLvlF4.Text = GetHKNameFromNum(Properties.Settings.Default.F4HK);
+            ui.lblHkLvlF5.Text = GetHKNameFromNum(Properties.Settings.Default.F5HK);
+            ui.lblHkLvlF6.Text = GetHKNameFromNum(Properties.Settings.Default.F6HK);
+            ui.lblHkLvlF7.Text = GetHKNameFromNum(Properties.Settings.Default.F7HK);
+            ui.lblHkLvlF8.Text = GetHKNameFromNum(Properties.Settings.Default.F8HK);
+            ui.lblHkLvlF9.Text = GetHKNameFromNum(Properties.Settings.Default.F9HK);
+            ui.lblHkLvlF10.Text = GetHKNameFromNum(Properties.Settings.Default.F10HK);
+            ui.lblHkLvlF12.Text = GetHKNameFromNum(Properties.Settings.Default.F12HK);
+
+            ui.pnlAutoDiscF.BackColor = autoDisconnectToggle ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
+            ui.pnlRecheckF.BackColor = recheckPtrToggle ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
+        }
+
+        public void SaveSettings()
+        {
+            Properties.Settings.Default.F1HK = f1Num;
+            Properties.Settings.Default.F2HK = f2Num;
+            Properties.Settings.Default.F3HK = f3Num;
+            Properties.Settings.Default.F4HK = f4Num;
+            Properties.Settings.Default.F5HK = f5Num;
+            Properties.Settings.Default.F6HK = f6Num;
+            Properties.Settings.Default.F7HK = f7Num;
+            Properties.Settings.Default.F8HK = f8Num;
+            Properties.Settings.Default.F9HK = f9Num;
+            Properties.Settings.Default.F10HK = f10Num;
+            Properties.Settings.Default.F12HK = f12Num;
+            Properties.Settings.Default.AutoDisc = autoDisconnectToggle;
+            Properties.Settings.Default.PtrCheck = recheckPtrToggle;
+
+            Properties.Settings.Default.Save();
+
+            SoundPlayer appliedPlayer = new SoundPlayer(Path.Combine(Directory.GetCurrentDirectory(), "icons/appliedsound.wav"));
+            appliedPlayer.Play();
+
+            ui.pnlSettingApplied.Visible = true;
+            ui.lblSettingApplied.Visible = true;
+
+            appliedTimer = new System.Timers.Timer(1000);
+            appliedTimer.Elapsed += applyEvent;
+            appliedTimer.AutoReset = false;
+            appliedTimer.Enabled = true;
+        }
+
+        public void saveLevelSettings(string lvlFKey, string lvlNum)
+        {
+            switch (lvlFKey)
+            {
+                case "F1":
+                    Properties.Settings.Default.F1HK = "18-" + lvlNum;
+                    f1Num = "18-" + lvlNum;
+                    ui.lblHotF1.Text = "Set Level " + lvlNum;
+                    ui.lblHkLvlF1.Text = "Set Level " + lvlNum;
+                    break;
+                case "F2":
+                    Properties.Settings.Default.F2HK = "18-" + lvlNum;
+                    f2Num = "18-" + lvlNum;
+                    ui.lblHotF2.Text = "Set Level " + lvlNum;
+                    ui.lblHkLvlF2.Text = "Set Level " + lvlNum;
+                    break;
+                case "F3":
+                    Properties.Settings.Default.F3HK = "18-" + lvlNum;
+                    f3Num = "18-" + lvlNum;
+                    ui.lblHotF3.Text = "Set Level " + lvlNum;
+                    ui.lblHkLvlF3.Text = "Set Level " + lvlNum;
+                    break;
+                case "F4":
+                    Properties.Settings.Default.F4HK = "18-" + lvlNum;
+                    f4Num = "18-" + lvlNum;
+                    ui.lblHotF4.Text = "Set Level " + lvlNum;
+                    ui.lblHkLvlF4.Text = "Set Level " + lvlNum;
+                    break;
+                case "F5":
+                    Properties.Settings.Default.F5HK = "18-" + lvlNum;
+                    f5Num = "18-" + lvlNum;
+                    ui.lblHotF5.Text = "Set Level " + lvlNum;
+                    ui.lblHkLvlF5.Text = "Set Level " + lvlNum;
+                    break;
+                case "F6":
+                    Properties.Settings.Default.F6HK = "18-" + lvlNum;
+                    f6Num = "18-" + lvlNum;
+                    ui.lblHotF6.Text = "Set Level " + lvlNum;
+                    ui.lblHkLvlF6.Text = "Set Level " + lvlNum;
+                    break;
+                case "F7":
+                    Properties.Settings.Default.F7HK = "18-" + lvlNum;
+                    f7Num = "18-" + lvlNum;
+                    ui.lblHotF7.Text = "Set Level " + lvlNum;
+                    ui.lblHkLvlF7.Text = "Set Level " + lvlNum;
+                    break;
+                case "F8":
+                    Properties.Settings.Default.F8HK = "18-" + lvlNum;
+                    f8Num = "18-" + lvlNum;
+                    ui.lblHotF8.Text = "Set Level " + lvlNum;
+                    ui.lblHkLvlF8.Text = "Set Level " + lvlNum;
+                    break;
+                case "F9":
+                    Properties.Settings.Default.F9HK = "18-" + lvlNum;
+                    f9Num = "18-" + lvlNum;
+                    ui.lblHotF9.Text = "Set Level " + lvlNum;
+                    ui.lblHkLvlF9.Text = "Set Level " + lvlNum;
+                    break;
+                case "F10":
+                    Properties.Settings.Default.F10HK = "18-" + lvlNum;
+                    f10Num = "18-" + lvlNum;
+                    ui.lblHotF10.Text = "Set Level " + lvlNum;
+                    ui.lblHkLvlF10.Text = "Set Level " + lvlNum;
+                    break;
+                case "F12":
+                    Properties.Settings.Default.F12HK = "18-" + lvlNum;
+                    f12Num = "18-" + lvlNum;
+                    ui.lblHotF12.Text = "Set Level " + lvlNum;
+                    ui.lblHkLvlF12.Text = "Set Level " + lvlNum;
+                    break;
+            }
+
+            SoundPlayer appliedPlayer = new SoundPlayer(Path.Combine(Directory.GetCurrentDirectory(), "icons/appliedsound.wav"));
+            appliedPlayer.Play();
+
+            Properties.Settings.Default.Save();
+        }
+
+        private void applyEvent(Object source, ElapsedEventArgs e)
+        {
+            if (ui.pnlSettingApplied.InvokeRequired)
+                ui.pnlSettingApplied.Invoke(new MethodInvoker(delegate
+                {
+                    ui.pnlSettingApplied.Visible = false;
+                    ui.lblSettingApplied.Visible = false;
+                }));
+            else
+            {
+                ui.pnlSettingApplied.Visible = false;
+                ui.lblSettingApplied.Visible = false;
+            }
+        }
+
+        public string GetHKNameFromNum(string hkNum)
+        {
+            string hkName = "Error!";
+            switch (hkNum.Split('-')[0])
+            {
+                case "1":
+                    hkName = "Moon Jump";
+                    break;
+                case "2":
+                    hkName = "Super Speed";
+                    break;
+                case "3":
+                    hkName = "Low Gravity";
+                    break;
+                case "4":
+                    hkName = "Store Position";
+                    break;
+                case "5":
+                    hkName = "Restore Position";
+                    break;
+                case "6":
+                    hkName = "TP to Marker";
+                    break;
+                case "7":
+                    hkName = "Fly Mode";
+                    break;
+                case "8":
+                    hkName = "Lock X Position";
+                    break;
+                case "9":
+                    hkName = "Lock Y Position";
+                    break;
+                case "10":
+                    hkName = "Lock Z Position";
+                    break;
+                case "11":
+                    hkName = "Lock X Speed";
+                    break;
+                case "12":
+                    hkName = "Lock Y Speed";
+                    break;
+                case "13":
+                    hkName = "Lock Z Speed";
+                    break;
+                case "14":
+                    hkName = "Toggle Connect";
+                    break;
+                case "15":
+                    hkName = "Hide Arms";
+                    break;
+                case "16":
+                    hkName = "Set Vault Save";
+                    break;
+                case "17":
+                    hkName = "Set Previous Save";
+                    break;
+                case "18":
+                    hkName = "Level " + hkNum.Split('-')[1];
+                    break;
+            }
+            return hkName;
         }
 
         public void KeyReader(IntPtr wParam, IntPtr lParam)
         {
-            if (connected && wParam.ToInt32() == 0x100) //WM_KEYDOWN
+            if (!lockAllFkeys)
             {
-                KeyboardHook.VK key = (KeyboardHook.VK)Marshal.ReadInt32(lParam);
-                switch (key) //Global Hotkeys
+                if (wParam.ToInt32() == 0x100) //WM_KEYDOWN
                 {
-                    case KeyboardHook.VK.VK_F1:
-                        toggleMoonjump();
-                        break;
-                    case KeyboardHook.VK.VK_F2:
-                        toggleSuperspeed();
-                        break;
-                    case KeyboardHook.VK.VK_F3:
-                        toggleLowGravity();
-                        break;
-                    case KeyboardHook.VK.VK_F4:
-                        storePosition();
-                        break;
-                    case KeyboardHook.VK.VK_F5:
-                        restorePosition();
-                        break;
-                    case KeyboardHook.VK.VK_F6:
-                        teleportToMarker();
-                        break;
-                    case KeyboardHook.VK.VK_F7:
-                        lockX();
-                        break;
-                    case KeyboardHook.VK.VK_F8:
-                        lockY();
-                        break;
-                    case KeyboardHook.VK.VK_F9:
-                        lockZ();
-                        break;
-                    case KeyboardHook.VK.VK_F10:
-                        toggleFlyMode();
-                        break;
-                    //F11 reserved for QUBE fullscreen toggling
-                    case KeyboardHook.VK.VK_F12:
-                        toggleArmsVisible();
-                        break;
-                    default:
-                        if (!currentKeys.Contains(key))
-                        {
-                            currentKeys.Add(key);
-                        }
-                        break;
+                    KeyboardHook.VK key = (KeyboardHook.VK)Marshal.ReadInt32(lParam);
+                    switch (key) //Global Hotkeys
+                    {
+                        case KeyboardHook.VK.VK_F1:
+                            hotkeyHub(f1Num);
+                            break;
+                        case KeyboardHook.VK.VK_F2:
+                            hotkeyHub(f2Num);
+                            break;
+                        case KeyboardHook.VK.VK_F3:
+                            hotkeyHub(f3Num);
+                            break;
+                        case KeyboardHook.VK.VK_F4:
+                            hotkeyHub(f4Num);
+                            break;
+                        case KeyboardHook.VK.VK_F5:
+                            hotkeyHub(f5Num);
+                            break;
+                        case KeyboardHook.VK.VK_F6:
+                            hotkeyHub(f6Num);
+                            break;
+                        case KeyboardHook.VK.VK_F7:
+                            hotkeyHub(f7Num);
+                            break;
+                        case KeyboardHook.VK.VK_F8:
+                            hotkeyHub(f8Num);
+                            break;
+                        case KeyboardHook.VK.VK_F9:
+                            hotkeyHub(f9Num);
+                            break;
+                        case KeyboardHook.VK.VK_F10:
+                            hotkeyHub(f10Num);
+                            break;
+                        //F11 reserved for QUBE fullscreen toggling
+                        case KeyboardHook.VK.VK_F12:
+                            hotkeyHub(f12Num);
+                            break;
+                        //page up & down for flymode speed adjustment
+                        case KeyboardHook.VK.VK_PRIOR:
+                            changeFlySpeed(1);
+                            break;
+                        case KeyboardHook.VK.VK_NEXT:
+                            changeFlySpeed(2);
+                            break;
+                        default:
+                            if (!currentKeys.Contains(key))
+                            {
+                                currentKeys.Add(key);
+                            }
+                            break;
+                    }
+                }
+                else if (connected && wParam.ToInt32() == 0x101) //WM_KEYUP
+                {
+                    KeyboardHook.VK key = (KeyboardHook.VK)Marshal.ReadInt32(lParam);
+                    switch (key) //Global Hotkeys
+                    {
+                        default:
+                            currentKeys.Remove(key);
+                            break;
+                    }
                 }
             }
-            else if (connected && wParam.ToInt32() == 0x101) //WM_KEYUP
+        }
+
+        public void changeFlySpeed(int directionSpeed)
+        {
+            if (directionSpeed == 1)
             {
-                KeyboardHook.VK key = (KeyboardHook.VK)Marshal.ReadInt32(lParam);
-                switch (key) //Global Hotkeys
+                if (flyMode && flyModeSpeed < 300)
                 {
-                    default:
-                        currentKeys.Remove(key);
-                        break;
+                    flyModeSpeed = flyModeSpeed + 20;
+                    ui.lblFlySpeed.Text = flyModeSpeed.ToString();
+                }
+            } else
+            {
+                if (flyMode && flyModeSpeed > 20)
+                {
+                    flyModeSpeed = flyModeSpeed - 20;
+                    ui.lblFlySpeed.Text = flyModeSpeed.ToString();
                 }
             }
         }
 
         public void setSave(String name)
         {
+            Console.WriteLine(name);
             source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + name);
-            for (int i = 0; i < fileNames.Length; i++)
-            {
-                string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
-                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+            string sourceFile = System.IO.Path.Combine(source, fileName);
+            string targetFile = System.IO.Path.Combine(target, fileName);
 
-                System.IO.File.Copy(sourceFile, targetFile, true);
-            }
+            System.IO.File.Copy(sourceFile, targetFile, true);
 
             if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "last_save.txt")))
             {
@@ -144,7 +411,8 @@ namespace QubeTrainerNamespace
                 }
             }
 
-            SystemSounds.Beep.Play();
+            SoundPlayer appliedPlayer = new SoundPlayer(Path.Combine(Directory.GetCurrentDirectory(), "icons/appliedsound.wav"));
+            appliedPlayer.Play();
         }
 
         public void reloadSave()
@@ -157,13 +425,10 @@ namespace QubeTrainerNamespace
                     if ((s = sr.ReadLine()) != null)
                     {
                         source = Path.Combine(Directory.GetCurrentDirectory(), "Saves\\" + s);
-                        for (int i = 0; i < fileNames.Length; i++)
-                        {
-                            string sourceFile = System.IO.Path.Combine(source, fileNames[i]);
-                            string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+                        string sourceFile = System.IO.Path.Combine(source, fileName);
+                        string targetFile = System.IO.Path.Combine(target, fileName);
 
-                            System.IO.File.Copy(sourceFile, targetFile, true);
-                        }
+                        File.Copy(sourceFile, targetFile, true);
                     }
                     else
                     {
@@ -179,140 +444,135 @@ namespace QubeTrainerNamespace
 
         public void loadVaultSave()
         {
-            for (int i = 0; i < fileNames.Length; i++)
-            {
-                string sourceFile = System.IO.Path.Combine(sourceVS, fileNames[i]);
-                string targetFile = System.IO.Path.Combine(target, fileNames[i]);
+            string sourceFile = System.IO.Path.Combine(sourceVS, fileName);
+            string targetFile = System.IO.Path.Combine(target, fileName);
 
-                System.IO.File.Copy(sourceFile, targetFile, true);
-            }
+            System.IO.File.Copy(sourceFile, targetFile, true);
         }
 
         public void toggleArmsVisible()
         {
+            if (!connected)
+            {
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
+            }
             armsHidden = !armsHidden;
-            if (armsHidden)
-            {
-                vam.WriteFloat(BaseArmsRotY, -180);
-            }
-            if (!armsHidden)
-            {
-                vam.WriteFloat(BaseArmsRotY, 0);
-            }
-            ui.SetText(ui.btnHideArms,armsHidden ? "Hide Arms (On)" : "Hide Arms (Off)");
+            vam.WriteFloat(BaseArmsRotY, armsHidden ? -180 : 0);
+            ui.pnlHideArmsF.BackColor = armsHidden ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0 ,0, 0);
         }
 
         public void toggleFlyMode()
         {
+            if (!connected)
+            {
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
+            }
             flyMode = !flyMode;
             valLockY = valY;
             valLockX = valX;
             valLockZ = valZ;
-
-            ui.SetText(ui.btnFlyMode,flyMode ? "Fly Mode (On)" : "Fly Mode (Off)");
+            ui.pnlFlyModeF.BackColor = flyMode ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockX()
         {
-            if (lockedX)
+            if (!connected)
             {
-                lockedX = false;
-                ui.SetText(ui.SLock1,"Lock");
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
             }
-            else
+            lockedX = !lockedX;
+            if (lockedX)
             {
                 valLockX = valX;
                 valLockSX = 0f;
-
-                lockedX = true;
-                ui.SetText(ui.SLock1,"Unlock");
             }
+            ui.SLock1Check.BackColor = lockedX ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockY()
         {
-            if (lockedY)
+            if (!connected)
             {
-                lockedY = false;
-                ui.SetText(ui.SLock2,"Lock");
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
             }
-            else
+            lockedY = !lockedY;
+            if (lockedY)
             {
                 valLockY = valY;
                 valLockSY = 0f;
-
-                lockedY = true;
-                ui.SetText(ui.SLock2,"Unlock");
             }
+            ui.SLock2Check.BackColor = lockedY ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockZ()
         {
-            if (lockedZ)
+            if (!connected)
             {
-                lockedZ = false;
-                ui.SetText(ui.SLock3,"Lock");
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
             }
-            else
+            lockedZ = !lockedZ;
+            if (lockedZ)
             {
                 valLockZ = valZ;
                 valLockSZ = 0f;
-
-                lockedZ = true;
-                ui.SetText(ui.SLock3,"Unlock");
             }
+            ui.SLock3Check.BackColor = lockedZ ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockSX()
         {
-            if (lockedSX)
+            if (!connected)
             {
-                lockedSX = false;
-                ui.SetText(ui.SLock4,"Lock");
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
             }
-            else
-            {
+            lockedSX = !lockedSX;
+            if (lockedSX)
                 valLockSX = valSX;
 
-                lockedSX = true;
-                ui.SetText(ui.SLock4,"Unlock");
-            }
+            ui.SLock4Check.BackColor = lockedSX ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockSY()
         {
-            if (lockedSY)
+            if (!connected)
             {
-                lockedSY = false;
-                ui.SetText(ui.SLock5,"Lock");
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
             }
-            else
-            {
+            lockedSY = !lockedSY;
+            if (lockedSY)
                 valLockSY = valSY;
 
-                lockedSY = true;
-                ui.SetText(ui.SLock5,"Unlock");
-            }
+            ui.SLock5Check.BackColor = lockedSY ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void lockSZ()
         {
-            if (lockedSZ)
+            if (!connected)
             {
-                lockedSZ = false;
-                ui.SetText(ui.SLock6,"Lock");
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
             }
-            else
-            {
+            lockedSZ = !lockedSZ;
+            if (lockedSZ)
                 valLockSZ = valSZ;
 
-                lockedSZ = true;
-                ui.SetText(ui.SLock6,"Unlock");
-            }
+            ui.SLock6Check.BackColor = lockedSZ ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void teleportToMarker()
         {
+            if (!connected)
+            {
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
+            }
             vam.WriteFloat(BaseX, valMX);
             vam.WriteFloat(BaseY, valMY);
             vam.WriteFloat(BaseZ, valMZ);
@@ -323,6 +583,11 @@ namespace QubeTrainerNamespace
 
         public void restorePosition()
         {
+            if (!connected)
+            {
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
+            }
             vam.WriteFloat(BaseX, valStoreX);
             vam.WriteFloat(BaseY, valStoreY);
             vam.WriteFloat(BaseZ, valStoreZ);
@@ -333,6 +598,11 @@ namespace QubeTrainerNamespace
 
         public void storePosition()
         {
+            if (!connected)
+            {
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
+            }
             valStoreX = valX;
             valStoreY = valY;
             valStoreZ = valZ;
@@ -340,57 +610,49 @@ namespace QubeTrainerNamespace
 
         public void toggleLowGravity()
         {
-            if (lowGravity)
+            if (!connected)
             {
-                ui.SetText(ui.btnLowGravity,"Low Gravity (Off)");
-                lowGravity = false;
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
             }
-            else
-            {
-                ui.SetText(ui.btnLowGravity,"Low Gravity (On)");
-                lowGravity = true;
-            }
+            lowGravity = !lowGravity;
+            ui.pnlLowGravityF.BackColor = lowGravity ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void toggleSuperspeed()
         {
+            if (!connected)
+            {
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
+            }
+            superSpeed = !superSpeed;
             if (superSpeed)
             {
-                ui.SetText(ui.btnSuperSpeed,"Super Speed (Off)");
-                superSpeed = false;
-
                 vam.WriteFloat(BaseSX, 0f);
                 vam.WriteFloat(BaseSZ, 0f);
             }
-            else
-            {
-                ui.SetText(ui.btnSuperSpeed,"Super Speed (On)");
-                superSpeed = true;
-            }
+            ui.pnlSuperSpeedF.BackColor = superSpeed ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void toggleMoonjump()
         {
-            if (moonjump)
+            if (!connected)
             {
-                ui.SetText(ui.btnMoonjump,"Moonjump (Off)");
-                moonjump = false;
+                ui.showMessageBox("The trainer needs to be connected for cheats to be enabled!", "Error Not Connected");
+                return;
             }
-            else
-            {
-                ui.SetText(ui.btnMoonjump,"Moonjump (On)");
-                moonjump = true;
-            }
+            moonjump = !moonjump;
+            ui.pnlMoonjumpF.BackColor = moonjump ? Color.FromArgb(228, 149, 78) : Color.FromArgb(0, 0, 0);
         }
 
         public void connect()
         {
             processes = Process.GetProcessesByName("QUBE-Win64-Shipping");
+            ui.btnConnect.BackgroundImage = Image.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "icons/stop_btn256.png"));
 
             if (processes.Length > 0)
             {
-                ui.SetText(ui.btnConnect,"Disconnect");
-                ui.setAllEnabled(true);
 
                 GameProcess = processes[0];
                 vam = new VAMemory("QUBE-Win64-Shipping");
@@ -402,6 +664,7 @@ namespace QubeTrainerNamespace
             }
             else
             {
+                ui.btnConnect.BackgroundImage = Image.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "icons/play_btn256.png"));
                 ui.showMessageBox("Could not find an open QUBE 2 process!", "Error Finding Process");
             }
         }
@@ -429,16 +692,22 @@ namespace QubeTrainerNamespace
 
         public void disconnect()
         {
-            ui.SetText(ui.btnConnect,"Connect");
-            ui.setAllEnabled(false);
+            ui.btnConnect.BackgroundImage = Image.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "icons/play_btn256.png"));
 
             aInterval.Stop();
             aInterval.Dispose();
-            for (int i = 0; i < 10; i++)
-            {
-                ui.clearAll();
-            }
+                
+            clearDelay = new System.Timers.Timer(40);
+            clearDelay.Elapsed += clearEvent;
+            clearDelay.AutoReset = false;
+            clearDelay.Enabled = true;
+
             connected = false;
+        }
+
+        private void clearEvent(Object source, ElapsedEventArgs e)
+        {
+            ui.clearAll();
         }
 
         private void SetInterval()
@@ -454,6 +723,15 @@ namespace QubeTrainerNamespace
             if (!connected)
             {
                 return;
+            }
+
+            if (autoDisconnectToggle)
+            {
+                processes = Process.GetProcessesByName("QUBE-Win64-Shipping");
+                if (processes.Length <= 0)
+                {
+                    disconnect();
+                }
             }
 
             valX = vam.ReadFloat(BaseX);
@@ -585,11 +863,11 @@ namespace QubeTrainerNamespace
             {
                 if (currentKeys.Contains(KeyboardHook.VK.VK_SPACE))
                 {
-                    valLockY += 100;
+                    valLockY += flyModeSpeed;
                 }
                 if (currentKeys.Contains(KeyboardHook.VK.VK_LSHIFT))
                 {
-                    valLockY -= 100;
+                    valLockY -= flyModeSpeed;
                 }
                 vam.WriteFloat(BaseSX, 0);
                 vam.WriteFloat(BaseSY, 0);
@@ -597,23 +875,23 @@ namespace QubeTrainerNamespace
 
                 if (currentKeys.Contains(KeyboardHook.VK.VK_W))
                 {
-                    valX = (((float)Math.Cos((Math.PI / 180) * valAX) * 100) + valX);
-                    valZ = (((float)Math.Sin((Math.PI / 180) * valAX) * 100) + valZ);
+                    valX = (((float)Math.Cos((Math.PI / 180) * valAX) * flyModeSpeed) + valX);
+                    valZ = (((float)Math.Sin((Math.PI / 180) * valAX) * flyModeSpeed) + valZ);
                 }
                 if (currentKeys.Contains(KeyboardHook.VK.VK_A))
                 {
-                    valX = (((float)Math.Sin((Math.PI / 180) * valAX) * 100) + valX);
-                    valZ = (((float)Math.Cos((Math.PI / 180) * valAX) * -100) + valZ);
+                    valX = (((float)Math.Sin((Math.PI / 180) * valAX) * flyModeSpeed) + valX);
+                    valZ = (((float)Math.Cos((Math.PI / 180) * valAX) * -flyModeSpeed) + valZ);
                 }
                 if (currentKeys.Contains(KeyboardHook.VK.VK_S))
                 {
-                    valX = (((float)Math.Cos((Math.PI / 180) * valAX) * -100) + valX);
-                    valZ = (((float)Math.Sin((Math.PI / 180) * valAX) * -100) + valZ);
+                    valX = (((float)Math.Cos((Math.PI / 180) * valAX) * -flyModeSpeed) + valX);
+                    valZ = (((float)Math.Sin((Math.PI / 180) * valAX) * -flyModeSpeed) + valZ);
                 }
                 if (currentKeys.Contains(KeyboardHook.VK.VK_D))
                 {
-                    valX = (((float)Math.Sin((Math.PI / 180) * valAX) * -100) + valX);
-                    valZ = (((float)Math.Cos((Math.PI / 180) * valAX) * 100) + valZ);
+                    valX = (((float)Math.Sin((Math.PI / 180) * valAX) * -flyModeSpeed) + valX);
+                    valZ = (((float)Math.Cos((Math.PI / 180) * valAX) * flyModeSpeed) + valZ);
                 }
 
                 vam.WriteFloat(BaseX, valX);
@@ -627,18 +905,23 @@ namespace QubeTrainerNamespace
                 vam.WriteFloat(BaseSY, -400);
             }
 
-            int newHash = calculateHashOfValues();
-            if (hashOfValues == newHash)
+            if (recheckPtrToggle)
             {
-                checkCounter++;
-            }
-            hashOfValues = newHash;
+                int newHash = calculateHashOfValues();
+                if (hashOfValues == newHash)
+                {
+                    checkCounter++;
+                }
+                hashOfValues = newHash;
 
-            if (checkCounter >= 150)
-            {
-                checkCounter = 0;
+                if (checkCounter >= 150)
+                {
+                    checkCounter = 0;
 
-                setupAddresses();
+                    Console.WriteLine("testttttt");
+
+                    setupAddresses();
+                }
             }
         }
 
@@ -662,6 +945,89 @@ namespace QubeTrainerNamespace
         public void writeFloat(IntPtr address, float newValue)
         {
             vam.WriteFloat(address, newValue);
+        }
+
+        public void checkNewUpdate()
+        {
+            using (WebClient wc = new WebClient())
+            {
+                var newVersion = wc.DownloadString("https://raw.githubusercontent.com/daniel-noordzij/Qube2-Trainer/master/version.txt");
+
+                if (currentVersion != newVersion)
+                {
+                    ui.lblNewUpdate.Visible = true;
+                }
+            }
+        }
+
+        public void hotkeyHub(string hkNum)
+        {
+
+            switch (hkNum.Split('-')[0])
+            {
+                case "1":
+                    toggleMoonjump();
+                    break;
+                case "2":
+                    toggleSuperspeed();
+                    break;
+                case "3":
+                    toggleLowGravity();
+                    break;
+                case "4":
+                    storePosition();
+                    break;
+                case "5":
+                    restorePosition();
+                    break;
+                case "6":
+                    teleportToMarker();
+                    break;
+                case "7":
+                    toggleFlyMode();
+                    break;
+                case "8":
+                    lockX();
+                    break;
+                case "9":
+                    lockY();
+                    break;
+                case "10":
+                    lockZ();
+                    break;
+                case "11":
+                    lockSX();
+                    break;
+                case "12":
+                    lockSY();
+                    break;
+                case "13":
+                    lockSZ();
+                    break;
+                case "14":
+                    if (!connected)
+                    {
+                        connect();
+                    }
+                    else
+                    {
+                        disconnect();
+                    }
+                    break;
+                case "15":
+                    toggleArmsVisible();
+                    break;
+                case "16":
+                    loadVaultSave();
+                    break;
+                case "17":
+                    reloadSave();
+                    break;
+                case "18":
+                    setSave(hkNum.Split('-')[1]);
+                    break;
+
+            }
         }
     }
 }
